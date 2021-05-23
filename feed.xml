@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2021-04-24T17:58:35+02:00</updated><id>/feed.xml</id><title type="html">The Cyber Experiment</title><subtitle>This website serves as learning tool. This website contains blog like posts that describe the usage of various tools and writeups for CTFs and any other topic that I played with.</subtitle><entry><title type="html">Laboratory Write-Up</title><link href="/htb/laboratory" rel="alternate" type="text/html" title="Laboratory Write-Up" /><published>2021-04-16T23:44:00+02:00</published><updated>2021-04-16T23:44:00+02:00</updated><id>/htb/laboratory</id><content type="html" xml:base="/htb/laboratory">&lt;p&gt;This is my writeup of the laboratory machine on Hack The Box. Eventhough the box was rated easy, I found getting a foothold quite hard. I exploited 2 GitLab vulnerabilties to gain a foothold. Leveraging the foothold; I get access to the GitLab admin account that contained a private SSH key. Using the SSH key I get access to the machine and gain root privileges by exploit a SUID binary that uses relative paths. Overall a fun machine that shows how dangerous LFI can be when chained with deserialization.&lt;/p&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2021-05-23T16:15:35+02:00</updated><id>/feed.xml</id><title type="html">The Cyber Experiment</title><subtitle>This website serves as learning tool. This website contains blog like posts that describe the usage of various tools and writeups for CTFs and any other topic that I played with.</subtitle><entry><title type="html">Laboratory Write-Up</title><link href="/htb/laboratory" rel="alternate" type="text/html" title="Laboratory Write-Up" /><published>2021-04-16T23:44:00+02:00</published><updated>2021-04-16T23:44:00+02:00</updated><id>/htb/laboratory</id><content type="html" xml:base="/htb/laboratory">&lt;p&gt;This is my writeup of the laboratory machine on Hack The Box. Eventhough the box was rated easy, I found getting a foothold quite hard. I exploited 2 GitLab vulnerabilties to gain a foothold. Leveraging the foothold; I get access to the GitLab admin account that contained a private SSH key. Using the SSH key I get access to the machine and gain root privileges by exploit a SUID binary that uses relative paths. Overall a fun machine that shows how dangerous LFI can be when chained with deserialization.&lt;/p&gt;
 
 &lt;h2 id=&quot;enumeration&quot;&gt;Enumeration&lt;/h2&gt;
 
@@ -112,7 +112,164 @@ dexter@laboratory:/tmp&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;docker-sec
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;p&gt;&lt;em&gt;Contents of the fake chmod file.&lt;/em&gt;&lt;/p&gt;
 
-&lt;p&gt;I read out the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/root/root.txt&lt;/code&gt; flag using the resulting reverse shell.&lt;/p&gt;</content><author><name></name></author><category term="htb" /><summary type="html">This is my writeup of the laboratory machine on Hack The Box. Eventhough the box was rated easy, I found getting a foothold quite hard. I exploited 2 GitLab vulnerabilties to gain a foothold. Leveraging the foothold; I get access to the GitLab admin account that contained a private SSH key. Using the SSH key I get access to the machine and gain root privileges by exploit a SUID binary that uses relative paths. Overall a fun machine that shows how dangerous LFI can be when chained with deserialization.</summary></entry><entry><title type="html">Doctor Write-Up</title><link href="/htb/doctor-write-up" rel="alternate" type="text/html" title="Doctor Write-Up" /><published>2021-03-26T22:36:00+01:00</published><updated>2021-03-26T22:36:00+01:00</updated><id>/htb/doctor-write-up</id><content type="html" xml:base="/htb/doctor-write-up">&lt;p&gt;This is my writeup of the Doctor machine on Hack The Box. It was a fun box that introduced me to the concept of Server Side Template Injection. The machine has a SSTI vulnerabilty which allows an attacker to gain a foothold on the machine as the web user. In the Apache logs I found a credential that I then used to escalate privileges by abusing built-in functionality of the Splunk Forwarder, which allows arbitrary code execution and is running as the root user.&lt;/p&gt;
+&lt;p&gt;I read out the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/root/root.txt&lt;/code&gt; flag using the resulting reverse shell.&lt;/p&gt;</content><author><name></name></author><category term="htb" /><summary type="html">This is my writeup of the laboratory machine on Hack The Box. Eventhough the box was rated easy, I found getting a foothold quite hard. I exploited 2 GitLab vulnerabilties to gain a foothold. Leveraging the foothold; I get access to the GitLab admin account that contained a private SSH key. Using the SSH key I get access to the machine and gain root privileges by exploit a SUID binary that uses relative paths. Overall a fun machine that shows how dangerous LFI can be when chained with deserialization.</summary></entry><entry><title type="html">Delivery Write-Up</title><link href="/htb/delivery-write-up" rel="alternate" type="text/html" title="Delivery Write-Up" /><published>2021-03-26T23:48:00+01:00</published><updated>2021-03-26T23:48:00+01:00</updated><id>/htb/delivery-write-up</id><content type="html" xml:base="/htb/delivery-write-up">&lt;p&gt;This is my writeup of the Delivery machine on Hack The Box. This box was created by one of my favourite youtubers: Ippsec (If you don’t know him, check his &lt;a href=&quot;ippsec-yt&quot;&gt;videos&lt;/a&gt;). I tricked two different application into talking to each other in order to obtain my initial foothold on the machine. Local enumeration reveals a hashed credential that I cracked using a rule based hashcat attack to get root-level privileges.&lt;/p&gt;
+
+&lt;h2 id=&quot;scanning--enumeration&quot;&gt;Scanning &amp;amp; Enumeration&lt;/h2&gt;
+&lt;p&gt;An initial nmap scan of the host shows Nginx running on port 80. A quick Google search does not list any interesting vulnerabilities for this particular version. Also, SSH seems to be up to date. So lets run a full TCP scan using nmap in the background, and start enumerating the web application.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;nmap &lt;span class=&quot;nt&quot;&gt;-sV&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-sC&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-O&lt;/span&gt; 10.10.10.222
+
+Nmap scan report &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;10.10.10.222 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;10.10.10.222&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Host is up &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.022s latency&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+Not shown: 998 closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;protocol 2.0&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+| ssh-hostkey: 
+|   2048 9c:40:fa:85:9b:01:ac:ac:0e:bc:0c:19:51:8a:ee:27 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;RSA&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|   256 5a:0c:c0:3b:9b:76:55:2e:6e:c4:f4:b9:5d:76:17:09 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;ECDSA&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_  256 b7:9d:f7:48:9d:a2:f2:76:30:fd:42:d3:35:3a:80:8c &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;ED25519&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+80/tcp open  http    nginx 1.14.2
+|_http-server-header: nginx/1.14.2
+|_http-title: Welcome
+
+Network Distance: 2 hops
+Service Info: OS: Linux&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; CPE: cpe:/o:linux:linux_kernel
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Below are the results of the full TCP scan. The scan shows that port 8065 is also open and seems to be running HTTP based on the responses it gives. I will reference theses results later on.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;# Nmap 7.91 scan initiated Sat Mar 27 04:36:28 2021 as: nmap -sV -sC -n -p- -oN /tmp/full-tcp 10.10.10.222&lt;/span&gt;
+Nmap scan report &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;10.10.10.222
+Host is up &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.021s latency&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+Not shown: 65532 closed ports
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;protocol 2.0&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+| ssh-hostkey: 
+|   2048 9c:40:fa:85:9b:01:ac:ac:0e:bc:0c:19:51:8a:ee:27 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;RSA&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|   256 5a:0c:c0:3b:9b:76:55:2e:6e:c4:f4:b9:5d:76:17:09 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;ECDSA&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_  256 b7:9d:f7:48:9d:a2:f2:76:30:fd:42:d3:35:3a:80:8c &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;ED25519&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+80/tcp   open  http    nginx 1.14.2
+|_http-server-header: nginx/1.14.2
+|_http-title: Welcome
+8065/tcp open  unknown
+| fingerprint-strings: 
+|   GenericLines, Help, RTSPRequest, SSLSessionReq, TerminalServerCookie: 
+|     HTTP/1.1 400 Bad Request
+|     Content-Type: text/plain&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;charset&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;utf-8
+|     Connection: close
+|     Request
+|   GetRequest: 
+|     HTTP/1.0 200 OK
+|     Accept-Ranges: bytes
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;enumerating-the-web-application&quot;&gt;Enumerating the Web Application&lt;/h2&gt;
+&lt;p&gt;Before doing anything I quickly browse around on the website and find two interesting things. First of their is a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/#contact-us&lt;/code&gt; page that states that users with a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;@delivery.htb&lt;/code&gt; email address can access their MatterMost server (which links to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;delivery.htb:8065&lt;/code&gt;). Secondly we find a link to the sub domain &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;helpdesk.delivery.htb&lt;/code&gt;. So I add those entries to my &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/etc/hosts&lt;/code&gt; file and will first have a look at the helpdesk page.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/htb/delivery/contact-us.png&quot; alt=&quot;Screenshot of the /#contact-us page&quot; /&gt;
+&lt;em&gt;The contact-us page revealing the helpdesk and MatterMost services&lt;/em&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;enumerating-the-helpdesk&quot;&gt;Enumerating the Helpdesk&lt;/h2&gt;
+&lt;p&gt;On the help desk page I can create a new ticket. During the process a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;ticket-id&amp;gt;@delivery.htb&lt;/code&gt; email address is generated with the instructions that any email send to that email address will have its contents attached to the ticket. In other words, the inbox of the email address will be attached to my ticket. And I can view my ticket by going to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;helpdesk.delivery.htb/view.php&lt;/code&gt; page.&lt;/p&gt;
+
+&lt;p&gt;From before I know that I need an &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;@delivery.htb&lt;/code&gt; email address to register for the MatterMost service. MatterMost is like slack and may thus contain sensitive information&lt;/p&gt;
+
+&lt;h2 id=&quot;enumerating-the-mattermost&quot;&gt;Enumerating the MatterMost&lt;/h2&gt;
+
+&lt;p&gt;I create an account using the email address of my ticket. After creating the account it asks to verify our email address. So I go and check the status of my ticket to find the activation email and activate my account.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/htb/delivery/verification-email-ticket.png&quot; alt=&quot;activation email attached to the ticket&quot; /&gt;
+&lt;em&gt;The email with the verification link is attached to the ticket.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;Using my new account I log into the MatterMost service and find that I can read an internal chat. The internal chat contains three usernames, and a password:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;root&lt;/li&gt;
+  &lt;li&gt;developers&lt;/li&gt;
+  &lt;li&gt;maildeliverer: Youve_G0t_Mail!&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;The chat also contains a message about them reusing the same password with small variations each time: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PleaseSubscribe!&lt;/code&gt;. The chat message mentions that the credentials can be used on the helpdesk system at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;helpdesk.delivery.htb/scp/login.php&lt;/code&gt;. I investigated the application but could not find anything interesting for getting a foothold on the machine.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/htb/delivery/internal-chat.jpg&quot; alt=&quot;internal-chat&quot; /&gt;
+&lt;em&gt;Internal chat message containing credentials.&lt;/em&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;credential-reuse&quot;&gt;Credential Reuse&lt;/h2&gt;
+&lt;p&gt;From the chat message I learned that they apparently have a habit of reusing passwords everywhere. From my enumeration, I still have one port that I have not investigated yet: port 22 running SSH. Typically we should not brute force SSH, however I can safely try two passwords as lockout typically only happens after three failed attempts.&lt;/p&gt;
+
+&lt;p&gt;So I create a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;users.txt&lt;/code&gt; file with the three usernames and a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;passwords.txt&lt;/code&gt; file containing the passwords &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Youve_G0t_Mail!&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PleaseSubscribe!&lt;/code&gt;. And next I configure the hydra tool to test the passwords.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;hydra &lt;span class=&quot;nt&quot;&gt;-L&lt;/span&gt; users.txt &lt;span class=&quot;nt&quot;&gt;-P&lt;/span&gt; passwords.txt ssh://delivery.htb
+
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;WARNING] Many SSH configurations limit the number of parallel tasks, it is recommended to reduce the tasks: use &lt;span class=&quot;nt&quot;&gt;-t&lt;/span&gt; 4
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;DATA] max 6 tasks per 1 server, overall 6 tasks, 6 login tries &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;l:3/p:2&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;, ~1 try per task
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;DATA] attacking ssh://delivery.htb:22/
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;22][ssh] host: delivery.htb   login: maildeliverer   password: Youve_G0t_Mail!
+1 of 1 target successfully completed, 1 valid password found
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now I can SSH into the machine and obtain the user flag in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/home/maildeliverer/user.txt&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;post-exploitation&quot;&gt;Post Exploitation&lt;/h2&gt;
+&lt;p&gt;I first enumerate the machine using &lt;a href=&quot;https://github.com/carlospolop/privilege-escalation-awesome-scripts-suite/tree/master/linPEAS&quot;&gt;linpeas.sh&lt;/a&gt; but without much luck. However, as the server is running two web applications, I decided to have a look at source codes as these typically contain credentials. I first went to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/var/www&lt;/code&gt; application and used grep to look for database credentials:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;maildeliverer@Delivery:/var/www&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;grep&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-r&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;DBPASS&quot;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;
+osticket/upload/include/ost-sampleconfig.php:define&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'DBPASS'&lt;/span&gt;,&lt;span class=&quot;s1&quot;&gt;'%CONFIG-DBPASS'&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+osticket/upload/include/ost-config.php:define&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'DBPASS'&lt;/span&gt;,&lt;span class=&quot;s1&quot;&gt;'!H3lpD3sk123!'&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+osticket/upload/bootstrap.php:        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(!&lt;/span&gt;db_connect&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;DBHOST, DBUSER, DBPASS, &lt;span class=&quot;nv&quot;&gt;$options&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Unfortunately I did not find anything interesting in the database with these credentials. So lets look for the MatterMost application as it is not in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/var/www&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;maildeliverer@Delivery:/var/www&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;find / &lt;span class=&quot;nt&quot;&gt;-name&lt;/span&gt; mattermost 2&amp;gt;/dev/null
+/opt/mattermost
+/opt/mattermost/bin/mattermost
+/var/lib/mysql/mattermost
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Having located the sources for the application, I cat out all the config files and find a different set of credentials for the MariaDB database.&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt; /opt/mattermost/config/&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;
+...snip...
+&lt;span class=&quot;s2&quot;&gt;&quot;SqlSettings&quot;&lt;/span&gt;: &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;                                                          
+    &lt;span class=&quot;s2&quot;&gt;&quot;DriverName&quot;&lt;/span&gt;: &lt;span class=&quot;s2&quot;&gt;&quot;mysql&quot;&lt;/span&gt;,                                                                                                                               
+    &lt;span class=&quot;s2&quot;&gt;&quot;DataSource&quot;&lt;/span&gt;: &lt;span class=&quot;s2&quot;&gt;&quot;mmuser:Crack_The_MM_Admin_PW@tcp(127.0.0.1:3306)/mattermost?charset=utf8mb4,utf8&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\u&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;0026readTimeout=30s&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\u&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;0026writeTimeout=30s&quot;&lt;/span&gt;,         
+    &lt;span class=&quot;s2&quot;&gt;&quot;DataSourceReplicas&quot;&lt;/span&gt;: &lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt;,                                             
+    &lt;span class=&quot;s2&quot;&gt;&quot;DataSourceSearchReplicas&quot;&lt;/span&gt;: &lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt;,                                                                                                                      
+    &lt;span class=&quot;s2&quot;&gt;&quot;MaxIdleConns&quot;&lt;/span&gt;: 20,                                                                                                                                  
+    &lt;span class=&quot;s2&quot;&gt;&quot;ConnMaxLifetimeMilliseconds&quot;&lt;/span&gt;: 3600000,                                                                                                              
+    &lt;span class=&quot;s2&quot;&gt;&quot;MaxOpenConns&quot;&lt;/span&gt;: 300,                                                                                                                                 
+    &lt;span class=&quot;s2&quot;&gt;&quot;Trace&quot;&lt;/span&gt;: &lt;span class=&quot;nb&quot;&gt;false&lt;/span&gt;,                                                                                                                                      
+    &lt;span class=&quot;s2&quot;&gt;&quot;AtRestEncryptKey&quot;&lt;/span&gt;: &lt;span class=&quot;s2&quot;&gt;&quot;n5uax3d4f919obtsp1pw1k5xetq1enez&quot;&lt;/span&gt;,               
+    &lt;span class=&quot;s2&quot;&gt;&quot;QueryTimeout&quot;&lt;/span&gt;: 30,                                                   
+    &lt;span class=&quot;s2&quot;&gt;&quot;DisableDatabaseSearch&quot;&lt;/span&gt;: &lt;span class=&quot;nb&quot;&gt;false&lt;/span&gt;                                        
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;,    
+...snip...
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;I login to the datbase again but this time usign the MariaDB credentials of the MatterMost application and then dump the Users table.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;mysql &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; mmuser &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt;
+use mattermost&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+MariaDB &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;mattermost]&amp;gt; &lt;span class=&quot;k&quot;&gt;select &lt;/span&gt;Username, Password, AuthData, Email, Roles from Users&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
++----------------------------------+--------------------------------------------------------------+----------+-------------------------+--------------------------+
+| Username                         | Password                                                     | AuthData | Email                   | Roles                    |
++----------------------------------+--------------------------------------------------------------+----------+-------------------------+--------------------------+
+| root                             | &lt;span class=&quot;nv&quot;&gt;$2a$10$VM6EeymRxJ29r8Wjkr8Dtev0O&lt;/span&gt;.1STWb4.4ScG.anuu7v0EFJwgjjO | NULL     | root@delivery.htb       | system_admin system_user |
++----------------------------------+--------------------------------------------------------------+----------+-------------------------+--------------------------+
+10 rows &lt;span class=&quot;k&quot;&gt;in &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.000 sec&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;cracking-the-hash&quot;&gt;Cracking the Hash&lt;/h2&gt;
+&lt;p&gt;From the internal chat I remember the comment by the root user about them using variants of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PleaseSubscribe!&lt;/code&gt; password everywhere. So instead of running a straight dictionary attack against the hash. I will use the password mangling capability of Hashcat to generate a targeted list of passwords that are all variants of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PleaseSubscribe!&lt;/code&gt; password. This king of attack is very effective way to attack users that reuse passwords by only introducing a little variation to a base password.&lt;/p&gt;
+
+&lt;p&gt;I identify the hash type by submitting it to a only &lt;a href=&quot;http://tunnelsup.com/hash-analyzer&quot;&gt;hash-analyzer&lt;/a&gt;; It is a bcrypt hash. Next I configure Hashcat and crack the hash.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;hashcat &lt;span class=&quot;nt&quot;&gt;-a&lt;/span&gt; 0 &lt;span class=&quot;nt&quot;&gt;-m&lt;/span&gt; 3200  root.hash pw.txt  &lt;span class=&quot;nt&quot;&gt;-r&lt;/span&gt; /usr/share/hashcat/rules/best64.rule  
+hashcat &lt;span class=&quot;nt&quot;&gt;-a&lt;/span&gt; 0 &lt;span class=&quot;nt&quot;&gt;-m&lt;/span&gt; 3200  root.hash pw.txt  &lt;span class=&quot;nt&quot;&gt;-r&lt;/span&gt; /usr/share/hashcat/rules/best64.rule &lt;span class=&quot;nt&quot;&gt;--show&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$2a$10$VM6EeymRxJ29r8Wjkr8Dtev0O&lt;/span&gt;.1STWb4.4ScG.anuu7v0EFJwgjjO:PleaseSubscribe!21
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;I &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;su&lt;/code&gt; into the root user and obtain the flag in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/root/root.txt&lt;/code&gt;.&lt;/p&gt;</content><author><name></name></author><category term="htb" /><summary type="html">This is my writeup of the Delivery machine on Hack The Box. This box was created by one of my favourite youtubers: Ippsec (If you don’t know him, check his videos). I tricked two different application into talking to each other in order to obtain my initial foothold on the machine. Local enumeration reveals a hashed credential that I cracked using a rule based hashcat attack to get root-level privileges.</summary></entry><entry><title type="html">Doctor Write-Up</title><link href="/htb/doctor-write-up" rel="alternate" type="text/html" title="Doctor Write-Up" /><published>2021-03-26T22:36:00+01:00</published><updated>2021-03-26T22:36:00+01:00</updated><id>/htb/doctor-write-up</id><content type="html" xml:base="/htb/doctor-write-up">&lt;p&gt;This is my writeup of the Doctor machine on Hack The Box. It was a fun box that introduced me to the concept of Server Side Template Injection. The machine has a SSTI vulnerabilty which allows an attacker to gain a foothold on the machine as the web user. In the Apache logs I found a credential that I then used to escalate privileges by abusing built-in functionality of the Splunk Forwarder, which allows arbitrary code execution and is running as the root user.&lt;/p&gt;
 
 &lt;h2 id=&quot;scanning--enumeration&quot;&gt;Scanning &amp;amp; Enumeration&lt;/h2&gt;
 &lt;p&gt;Initial nmap scan of the machine shows Apache running on port 80 and Splunk running on port 8089. As I am not familiar with Splunk; I googled it first. Initial results show that Splunk Forwarder provides functionality for code execution (&lt;a href=&quot;https://book.hacktricks.xyz/linux-unix/privilege-escalation/splunk-lpe-and-persistence&quot;&gt;hacktrickz post&lt;/a&gt;). However, to use this we first need a set of valid credentials. So lets first have a look at the web application.&lt;/p&gt;
